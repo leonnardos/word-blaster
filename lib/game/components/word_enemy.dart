@@ -75,8 +75,10 @@ class WordEnemy extends PositionComponent {
   set bottomLimit(double value) => _bottomLimit = value;
 
   void _rebuildText() {
+    // Exo 2 (não Orbitron): a palavra que desce precisa ser LEGÍVEL —
+    // feedback do usuário jogando no celular.
     const baseStyle = TextStyle(
-      fontFamily: 'Orbitron',
+      fontFamily: 'Exo2',
       fontSize: 20,
       fontWeight: FontWeight.w600,
       letterSpacing: 1.2,
@@ -124,7 +126,7 @@ class WordEnemy extends PositionComponent {
       text: TextSpan(
         text: _showPt ? wordData.pt : '',
         style: TextStyle(
-          fontFamily: 'Orbitron',
+          fontFamily: 'Exo2',
           fontSize: hidden ? 13 : 12,
           fontStyle: FontStyle.italic,
           color: hidden

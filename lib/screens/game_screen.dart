@@ -582,7 +582,7 @@ class _MobileKeyboard extends StatelessWidget {
               const Spacer(flex: 2),
               Expanded(
                 flex: 6,
-                child: _KeyCap(char: ' ', label: 'ESPAÇO', onKey: onKey),
+                child: _KeyCap(char: ' ', label: 'espaço', onKey: onKey),
               ),
               const Spacer(flex: 2),
             ],
@@ -649,12 +649,15 @@ class _KeyCapState extends State<_KeyCap> {
                 : const [],
           ),
           child: Text(
-            widget.label ?? widget.char.toUpperCase(),
+            // Minúsculas, como as palavras do jogo — a criança/aluno acha
+            // a letra pela MESMA forma que vê na palavra.
+            widget.label ?? widget.char,
             style: TextStyle(
+              fontFamily: 'Exo2',
               color: _pressed
                   ? const Color(0xFF00E5FF)
                   : const Color(0xFFD5E2F0),
-              fontSize: widget.label == null ? 19 : 12,
+              fontSize: widget.label == null ? 21 : 12,
               fontWeight: FontWeight.w600,
               letterSpacing: widget.label == null ? 0 : 2,
             ),
@@ -719,6 +722,7 @@ class _InspectOverlay extends StatelessWidget {
                     child: Text(
                       word.en,
                       style: const TextStyle(
+                        fontFamily: 'Exo2',
                         color: Colors.white,
                         fontSize: 30,
                         fontWeight: FontWeight.bold,
@@ -752,6 +756,7 @@ class _InspectOverlay extends StatelessWidget {
               Text(
                 word.pt,
                 style: const TextStyle(
+                  fontFamily: 'Exo2',
                   color: Color(0xFF00E5FF),
                   fontSize: 20,
                   fontWeight: FontWeight.w600,
@@ -765,6 +770,7 @@ class _InspectOverlay extends StatelessWidget {
                 Text(
                   example.$1,
                   style: const TextStyle(
+                    fontFamily: 'Exo2',
                     color: Color(0xFFE8ECF0),
                     fontSize: 16,
                     fontStyle: FontStyle.italic,
@@ -774,7 +780,9 @@ class _InspectOverlay extends StatelessWidget {
                 Text(
                   example.$2,
                   style: const TextStyle(
-                      color: Color(0xFF8A93B2), fontSize: 14),
+                      fontFamily: 'Exo2',
+                      color: Color(0xFF8A93B2),
+                      fontSize: 14),
                 ),
               ],
               const SizedBox(height: 14),
@@ -920,9 +928,10 @@ class _WrongLetterPop extends StatelessWidget {
               child: Text(
                 letter,
                 style: const TextStyle(
+                  fontFamily: 'Exo2',
                   color: Color(0xFFFF5252),
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
                   letterSpacing: 1,
                   shadows: [
                     Shadow(color: Color(0xAAFF2E2E), blurRadius: 14),
@@ -1059,7 +1068,8 @@ class _Hud extends StatelessWidget {
                           if (char.isNotEmpty) {
                             child = _WrongLetterPop(
                               key: ValueKey('wrong-$id'),
-                              letter: char == ' ' ? '␣' : char.toUpperCase(),
+                              // Minúscula, na forma em que aparece na palavra.
+                              letter: char == ' ' ? '␣' : char,
                             );
                           } else {
                             child = ValueListenableBuilder<int>(

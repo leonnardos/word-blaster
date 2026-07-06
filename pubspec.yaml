@@ -77,6 +77,17 @@ flutter:
           weight: 700
         - asset: assets/fonts/Orbitron-Black.ttf
           weight: 900
+    # Exo 2: a irmã LEGÍVEL da Orbitron — para as palavras do jogo,
+    # traduções, teclado e textos de leitura.
+    - family: Exo2
+      fonts:
+        - asset: assets/fonts/Exo2-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Exo2-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/Exo2-SemiBold.ttf
+          weight: 600
 
   # To add assets to your application, add an assets section, like this:
   # assets:

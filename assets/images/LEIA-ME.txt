@@ -1,0 +1,7 @@
+Salve a arte do menu aqui com o nome exato:
+
+  menu_bg.png
+
+(a imagem do tanque em batalha que você gerou — print 4).
+O menu detecta o arquivo automaticamente; sem ele, usa um degradê de
+brasa como fundo. Recomendado: PNG/JPG vertical, ~1080x1920.

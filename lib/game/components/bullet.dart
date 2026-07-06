@@ -5,8 +5,8 @@ import 'package:flame/components.dart';
 
 import 'word_enemy.dart';
 
-/// Projétil de canhão: cápsula escura de ponta prateada com rastro de fogo,
-/// sempre apontando na direção do voo. Um tiro por letra digitada.
+/// Míssil: corpo fino branco, bico pontudo e aletas vermelhas, com rastro
+/// de fogo — sempre apontando na direção do voo. Um por letra digitada.
 class Bullet extends PositionComponent {
   // Rápida o bastante para ser ágil, lenta o bastante para a rajada de
   // "uma bala por letra" ser visível na tela.
@@ -19,7 +19,7 @@ class Bullet extends PositionComponent {
   double _angle = 0;
 
   Bullet({required Vector2 start, required this.target, this.onImpact})
-      : super(position: start, size: Vector2(20, 40), anchor: Anchor.center);
+      : super(position: start, size: Vector2(14, 36), anchor: Anchor.center);
 
   @override
   void update(double dt) {
@@ -48,51 +48,69 @@ class Bullet extends PositionComponent {
     canvas.translate(size.x / 2, size.y / 2);
     canvas.rotate(_angle);
 
-    // Rastro de fogo atrás do projétil.
+    const red = Color(0xFFD8402C);
+    final outline = Paint()
+      ..color = const Color(0xFF11141A)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+
+    // Rastro de fogo atrás do míssil.
     canvas.drawCircle(
-      const Offset(0, 24),
-      6,
+      const Offset(0, 22),
+      5,
       Paint()
         ..color = const Color(0xFFC33B12).withValues(alpha: 0.35)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
     canvas.drawCircle(
       const Offset(0, 16),
-      8,
+      6.5,
       Paint()
         ..color = const Color(0xFFFF7A1A).withValues(alpha: 0.6)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
     canvas.drawCircle(
-      const Offset(0, 10),
-      5.6,
+      const Offset(0, 11),
+      4.5,
       Paint()
         ..color = const Color(0xFFFFC93C).withValues(alpha: 0.85)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
 
-    // Corpo do projétil: cápsula escura.
+    // Aletas traseiras vermelhas.
+    final fins = Path()
+      ..moveTo(-2.4, 6)
+      ..lineTo(-6.2, 12)
+      ..lineTo(-2.4, 12)
+      ..lineTo(-2.4, 6)
+      ..moveTo(2.4, 6)
+      ..lineTo(6.2, 12)
+      ..lineTo(2.4, 12)
+      ..lineTo(2.4, 6);
+    canvas.drawPath(fins, Paint()..color = red);
+    canvas.drawPath(fins, outline);
+
+    // Corpo fino branco-prata.
     final body = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(-5, -18, 10, 28),
-      const Radius.circular(5),
+      const Rect.fromLTWH(-2.6, -12, 5.2, 24),
+      const Radius.circular(2.4),
     );
-    canvas.drawRRect(body, Paint()..color = const Color(0xFF2A2F35));
-    canvas.drawRRect(
-      body,
-      Paint()
-        ..color = const Color(0xFF11141A)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4,
+    canvas.drawRRect(body, Paint()..color = const Color(0xFFE6EAEE));
+    canvas.drawRRect(body, outline);
+    // Faixa vermelha no meio do corpo.
+    canvas.drawRect(
+      const Rect.fromLTWH(-2.6, 0, 5.2, 3.2),
+      Paint()..color = red,
     );
-    // Ponta prateada.
-    canvas.drawRRect(
-      RRect.fromRectAndCorners(
-        const Rect.fromLTWH(-5, -18, 10, 11),
-        topLeft: const Radius.circular(5),
-        topRight: const Radius.circular(5),
-      ),
-      Paint()..color = const Color(0xFFD8DDE2),
-    );
+
+    // Bico pontudo vermelho.
+    final nose = Path()
+      ..moveTo(-2.6, -12)
+      ..quadraticBezierTo(-1.4, -17, 0, -19.5)
+      ..quadraticBezierTo(1.4, -17, 2.6, -12)
+      ..close();
+    canvas.drawPath(nose, Paint()..color = red);
+    canvas.drawPath(nose, outline);
 
     canvas.restore();
   }

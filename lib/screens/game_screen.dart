@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +8,7 @@ import '../game/difficulty.dart';
 import '../game/screen_size.dart';
 import '../game/word_blaster_game.dart';
 import '../services/progress_service.dart';
+import '../services/sound_service.dart';
 import '../services/tts_service.dart';
 
 /// Tela de jogo com duas rotas de digitação:
@@ -136,6 +139,7 @@ class _GameScreenState extends State<GameScreen> {
       child: GestureDetector(
         onTap: () {
           ProgressService.saveSoundOn(!on);
+          SoundService.syncMusic(); // mudo pausa/retoma a trilha também
           setState(() {});
           _focusNode.requestFocus();
         },
@@ -336,6 +340,12 @@ class _GameScreenState extends State<GameScreen> {
             ),
             _Hud(game: _game),
             _sideStrip(),
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 8,
+              child: _StaminaBar(game: _game),
+            ),
             // Campo invisível: só existe para capturar a digitação.
             Positioned(
               left: 0,
@@ -363,6 +373,148 @@ class _GameScreenState extends State<GameScreen> {
   }
 }
 
+/// Barra de estamina no rodapé: enche a cada palavra correta e zera no erro.
+/// Cada quarto é um marco de multiplicador (5/15/25/35 palavras → ×2..×5).
+class _StaminaBar extends StatelessWidget {
+  final WordBlasterGame game;
+
+  const _StaminaBar({required this.game});
+
+  static Color _tierColor(int multiplier) => switch (multiplier) {
+        5 => const Color(0xFFFF2E88),
+        4 => const Color(0xFFFFB020),
+        3 => const Color(0xFF7CE87C),
+        2 => const Color(0xFF00E5FF),
+        _ => const Color(0xFF3A7A8C),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: game.streak,
+      builder: (_, streak, __) {
+        final pct = WordBlasterGame.staminaFor(streak);
+        return ValueListenableBuilder<int>(
+          valueListenable: game.multiplier,
+          builder: (_, mult, __) {
+            final color = _tierColor(mult);
+            return Row(
+              children: [
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (_, constraints) => Container(
+                      height: 10,
+                      clipBehavior: Clip.antiAlias,
+                      decoration: BoxDecoration(
+                        color: const Color(0x9910162A),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF2A3350)),
+                      ),
+                      child: Stack(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 260),
+                              curve: Curves.easeOut,
+                              width: constraints.maxWidth * pct,
+                              decoration: BoxDecoration(
+                                color: color,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: mult > 1
+                                    ? [
+                                        BoxShadow(
+                                          color:
+                                              color.withValues(alpha: 0.6),
+                                          blurRadius: 8,
+                                        ),
+                                      ]
+                                    : const [],
+                              ),
+                            ),
+                          ),
+                          // Marcos de 25/50/75%.
+                          for (final tick in const [0.25, 0.5, 0.75])
+                            Positioned(
+                              left: constraints.maxWidth * tick - 1,
+                              top: 0,
+                              bottom: 0,
+                              child: Container(
+                                width: 2,
+                                color: const Color(0x80070B14),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 32,
+                  child: Text(
+                    mult > 1 ? '×$mult' : '',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+/// Letra errada explodindo no lugar do combo: pop elástico, tremidinha
+/// e brilho vermelho, sumindo ao final (~1s, casado com o relógio do jogo).
+class _WrongLetterPop extends StatelessWidget {
+  final String letter;
+
+  const _WrongLetterPop({super.key, required this.letter});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 950),
+      builder: (_, t, __) {
+        final pop = Curves.elasticOut.transform((t / 0.4).clamp(0.0, 1.0));
+        final scale = 2.2 - 1.2 * pop;
+        final opacity =
+            t < 0.72 ? 1.0 : (1 - (t - 0.72) / 0.28).clamp(0.0, 1.0);
+        final shake = sin(t * pi * 9) * 3 * (1 - t);
+        return Transform.translate(
+          offset: Offset(shake, 0),
+          child: Transform.scale(
+            scale: scale,
+            child: Opacity(
+              opacity: opacity,
+              child: Text(
+                letter,
+                style: const TextStyle(
+                  color: Color(0xFFFF5252),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1,
+                  shadows: [
+                    Shadow(color: Color(0xAAFF2E2E), blurRadius: 14),
+                    Shadow(color: Color(0x66FF6B4A), blurRadius: 26),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _Hud extends StatelessWidget {
   final WordBlasterGame game;
 
@@ -373,18 +525,22 @@ class _Hud extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ValueListenableBuilder<int>(
+        // Stack em vez de Row: o placar e o combo ficam no CENTRO exato da
+        // tela, independentemente da largura dos corações e do nível.
+        child: SizedBox(
+          height: 72,
+          child: Stack(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: ValueListenableBuilder<int>(
                   valueListenable: game.lives,
                   builder: (_, lives, __) {
                     // Vidas crescem a cada nível; acima de 6 vira "♥ ×N" para
                     // não engolir o HUD em telas estreitas.
                     if (lives > 6) {
                       return Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.favorite,
                               color: Color(0xFFFF2E88), size: 20),
@@ -401,6 +557,7 @@ class _Hud extends StatelessWidget {
                       );
                     }
                     return Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: List.generate(
                         lives,
                         (_) => const Icon(
@@ -412,19 +569,11 @@ class _Hud extends StatelessWidget {
                     );
                   },
                 ),
-                ValueListenableBuilder<int>(
-                  valueListenable: game.score,
-                  builder: (_, score, __) => Text(
-                    '$score',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-                ),
-                Row(
+              ),
+              Align(
+                alignment: Alignment.topRight,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     ValueListenableBuilder<String>(
                       valueListenable: game.levelLabel,
@@ -457,27 +606,82 @@ class _Hud extends StatelessWidget {
                     ),
                   ],
                 ),
-              ],
-            ),
-            ValueListenableBuilder<int>(
-              valueListenable: game.streak,
-              builder: (_, streak, __) {
-                if (streak < 2) return const SizedBox(height: 20);
-                return ValueListenableBuilder<int>(
-                  valueListenable: game.multiplier,
-                  builder: (_, mult, __) => Text(
-                    mult > 1 ? 'COMBO $streak  ×$mult' : 'COMBO $streak',
-                    style: const TextStyle(
-                      color: Color(0xFF00E5FF),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2,
+              ),
+              Align(
+                alignment: Alignment.topCenter,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<int>(
+                      valueListenable: game.score,
+                      builder: (_, score, __) => Text(
+                        '$score',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                    // Linha do combo — que explode na letra errada (animada)
+                    // quando o jogador erra e o combo se apaga.
+                    SizedBox(
+                      height: 28,
+                      child: ValueListenableBuilder<(int, String)>(
+                        valueListenable: game.wrongLetter,
+                        builder: (_, wrong, __) {
+                          final (id, char) = wrong;
+                          final Widget child;
+                          if (char.isNotEmpty) {
+                            child = _WrongLetterPop(
+                              key: ValueKey('wrong-$id'),
+                              letter: char == ' ' ? '␣' : char.toUpperCase(),
+                            );
+                          } else {
+                            child = ValueListenableBuilder<int>(
+                              key: const ValueKey('combo'),
+                              valueListenable: game.streak,
+                              builder: (_, streak, __) {
+                                if (streak < 2) return const SizedBox.shrink();
+                                return ValueListenableBuilder<int>(
+                                  valueListenable: game.multiplier,
+                                  builder: (_, mult, __) => Text(
+                                    mult > 1
+                                        ? 'COMBO $streak  ×$mult'
+                                        : 'COMBO $streak',
+                                    style: const TextStyle(
+                                      color: Color(0xFF00E5FF),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 2,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                          // O combo "estoura" (encolhe/some) dando lugar à letra.
+                          return AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 160),
+                            switchInCurve: Curves.easeOut,
+                            switchOutCurve: Curves.easeIn,
+                            transitionBuilder: (widget, animation) =>
+                                ScaleTransition(
+                              scale: animation,
+                              child: FadeTransition(
+                                  opacity: animation, child: widget),
+                            ),
+                            child: child,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

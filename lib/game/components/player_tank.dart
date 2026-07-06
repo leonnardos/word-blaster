@@ -5,48 +5,49 @@ import 'package:flame/components.dart';
 
 import 'battlefield.dart';
 
-/// Tanque do jogador: esteiras completas nas laterais com gomos GIRANDO
-/// (na velocidade do chão — o tanque está sempre avançando), blindagem
-/// clara no casco e torre central com CANHÃO DUPLO de pontas azuis.
-/// O casco fica plantado; só a torre gira.
+/// Veículo do jogador, seguindo a arte de referência: quatro RODAS grandes
+/// de pneu com gomos (girando — ele está sempre avançando), casco branco
+/// blindado com placa octogonal central e DOMO azul brilhante, e canhão
+/// duplo de pontas azuis que emerge por baixo da placa central.
+/// O casco fica plantado; só o conjunto dos canhões gira para mirar.
 class PlayerTank extends PositionComponent {
   // Paleta da referência.
   static const _blue = Color(0xFF2FB7F2);
-  static const _podDark = Color(0xFF262B31);
-  static const _outline = Color(0xFF11141A);
-  static const _plate = Color(0xFFC2C9CF);
-  static const _plateLight = Color(0xFFD8DDE2);
+  static const _blueLight = Color(0xFF8FD9FF);
+  static const _tire = Color(0xFF23272D);
+  static const _tireGroove = Color(0xFF10131A);
+  static const _tireEdge = Color(0xFF3A424B);
+  static const _outlineColor = Color(0xFF15181D);
+  static const _plate = Color(0xFFD9DDE2);
+  static const _plateBright = Color(0xFFEDF0F3);
   static const _plateMid = Color(0xFF9BA3AB);
-  static const _seam = Color(0xFF858D94);
+  static const _seam = Color(0xFF9AA1A8);
+  static const _dark = Color(0xFF2A2F35);
+  static const _barrel = Color(0xFFC7CDD3);
 
-  /// Ângulo atual da torre (0 = canhões para cima). O componente em si não
-  /// gira; a rotação é aplicada só na torre, dentro do render.
+  /// Ângulo atual dos canhões (0 = para cima). O componente não gira.
   double aimAngle = 0;
 
   double _targetAngle = 0;
   double _turnSpeed = 18;
 
-  /// Deslocamento dos gomos da esteira (anima o "andar" do tanque).
-  static const _slatSpacing = 6.0;
+  /// Deslocamento dos gomos dos pneus (anima o "andar").
+  static const _grooveSpacing = 5.5;
   double _treadScroll = 0;
 
-  PlayerTank() : super(size: Vector2(56, 62), anchor: Anchor.center);
-
-  Offset get _turretCenter => Offset(size.x / 2, size.y * 0.52);
+  PlayerTank() : super(size: Vector2(60, 64), anchor: Anchor.center);
 
   /// Ponta do cano (esquerdo ou direito) em coordenadas do mundo — as balas
   /// saem alternando entre os dois canos.
   Vector2 muzzleTip({required bool left}) {
-    final local = Vector2(left ? -5.5 : 5.5, -34);
+    final local = Vector2(left ? -4.5 : 4.5, -37);
     final c = cos(aimAngle);
     final s = sin(aimAngle);
-    final turretOffset = Vector2(0, size.y * 0.02);
     return position +
-        turretOffset +
         Vector2(local.x * c - local.y * s, local.x * s + local.y * c);
   }
 
-  /// Gira a torre rápido para apontar ao ponto dado (coordenadas do jogo).
+  /// Gira os canhões rápido para apontar ao ponto dado.
   void aimAt(Vector2 point) {
     final delta = point - position;
     _targetAngle = atan2(delta.x, -delta.y);
@@ -60,7 +61,7 @@ class PlayerTank extends PositionComponent {
     _turnSpeed = 4;
   }
 
-  /// Quão longe (em radianos) a torre está de apontar para o ponto.
+  /// Quão longe (em radianos) os canhões estão de apontar para o ponto.
   double aimError(Vector2 point) {
     final delta = point - position;
     var diff = atan2(delta.x, -delta.y) - aimAngle;
@@ -76,8 +77,9 @@ class PlayerTank extends PositionComponent {
   @override
   void update(double dt) {
     super.update(dt);
-    // Gomos rolam para baixo em sincronia com o chão: tanque avançando.
-    _treadScroll = (_treadScroll + Battlefield.scrollSpeed * dt) % _slatSpacing;
+    // Pneus rolam em sincronia com o chão: veículo avançando.
+    _treadScroll =
+        (_treadScroll + Battlefield.scrollSpeed * dt) % _grooveSpacing;
     var diff = _targetAngle - aimAngle;
     while (diff > pi) {
       diff -= 2 * pi;
@@ -93,7 +95,7 @@ class PlayerTank extends PositionComponent {
     final w = size.x;
     final h = size.y;
     final outline = Paint()
-      ..color = _outline
+      ..color = _outlineColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.6;
 
@@ -101,152 +103,222 @@ class PlayerTank extends PositionComponent {
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(2, 5, w - 4, h - 6),
-        const Radius.circular(10),
+        const Radius.circular(12),
       ),
       Paint()
         ..color = const Color(0xAA000000)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
-    // Base branca central: coluna + travessa ligando os quatro cantos.
-    final plate = Paint()..color = _plate;
-    final hullColumn = RRect.fromRectAndRadius(
-      Rect.fromLTWH(12, 6, w - 24, h - 12),
-      const Radius.circular(6),
+    // ------------------------- casco branco em cruz ------------------------
+    final plateH = RRect.fromRectAndRadius(
+      Rect.fromLTWH(4, 19, w - 8, h - 38),
+      const Radius.circular(7),
     );
-    final hullBand = RRect.fromRectAndRadius(
-      Rect.fromLTWH(3, h / 2 - 6, w - 6, 12),
-      const Radius.circular(4),
+    final plateV = RRect.fromRectAndRadius(
+      Rect.fromLTWH(15, 3, w - 30, h - 6),
+      const Radius.circular(7),
     );
-    canvas.drawRRect(hullBand, plate);
-    canvas.drawRRect(hullColumn, plate);
-    canvas.drawRRect(hullBand, outline);
-    canvas.drawRRect(hullColumn, outline);
-    // Placa frontal (glacis) e seams de blindagem.
-    final glacis = Path()
-      ..moveTo(w / 2 - 10, 8)
-      ..lineTo(w / 2 + 10, 8)
-      ..lineTo(w / 2 + 6, 2)
-      ..lineTo(w / 2 - 6, 2)
-      ..close();
-    canvas.drawPath(glacis, Paint()..color = _plateMid);
-    canvas.drawPath(glacis, outline);
-    final seam = Paint()
+    canvas.drawRRect(plateH, Paint()..color = _plate);
+    canvas.drawRRect(plateV, Paint()..color = _plate);
+    canvas.drawRRect(plateH, outline);
+    canvas.drawRRect(plateV, outline);
+
+    // Para-choque frontal e traseiro.
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w / 2 - 8, 0, 16, 5),
+        const Radius.circular(2),
+      ),
+      Paint()..color = _plateMid,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(w / 2 - 7, h - 5, 14, 5),
+        const Radius.circular(2),
+      ),
+      Paint()..color = _plateMid,
+    );
+
+    // Rebites e seams de blindagem.
+    final rivet = Paint()..color = _seam;
+    for (final p in [
+      Offset(19, 9),
+      Offset(w - 19, 9),
+      Offset(19, h - 9),
+      Offset(w - 19, h - 9),
+      Offset(9, 24),
+      Offset(w - 9, 24),
+      Offset(9, h - 24),
+      Offset(w - 9, h - 24),
+    ]) {
+      canvas.drawCircle(p, 1.1, rivet);
+    }
+    final seamLine = Paint()
       ..color = _seam
       ..strokeWidth = 1;
-    canvas.drawLine(Offset(w / 2, 10), Offset(w / 2, 20), seam);
-    canvas.drawLine(Offset(w / 2, h - 20), Offset(w / 2, h - 8), seam);
-
-    // Esteiras nos QUATRO cantos (como na referência), gomos rolando.
-    final slat = Paint()
-      ..color = const Color(0xFF3E4650)
-      ..strokeWidth = 2.2;
-    final rail = Paint()
-      ..color = const Color(0xFF171B20)
-      ..strokeWidth = 2.4;
-    for (final corner in [
-      const Offset(0, 2),
-      Offset(w - 14, 2),
-      Offset(0, h - 29),
-      Offset(w - 14, h - 29),
-    ]) {
-      final pod = RRect.fromRectAndRadius(
-        Rect.fromLTWH(corner.dx, corner.dy, 14, 27),
-        const Radius.circular(5),
+    canvas.drawLine(Offset(w / 2 - 6, 12), Offset(w / 2 + 6, 12), seamLine);
+    canvas.drawLine(
+        Offset(w / 2, h - 16), Offset(w / 2, h - 8), seamLine);
+    // Logo (chevron duplo) na traseira.
+    final chevron = Paint()
+      ..color = _seam
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4;
+    for (final dy in [0.0, 4.0]) {
+      final y = h - 15 + dy;
+      canvas.drawPath(
+        Path()
+          ..moveTo(w / 2 - 4, y)
+          ..lineTo(w / 2, y + 3)
+          ..lineTo(w / 2 + 4, y),
+        chevron,
       );
-      canvas.drawRRect(pod, Paint()..color = _podDark);
-      canvas.save();
-      canvas.clipRRect(pod);
-      // Gomos descendo em loop — o tanque nunca para de andar.
-      for (var y = corner.dy - _slatSpacing + _treadScroll;
-          y < corner.dy + 29;
-          y += _slatSpacing) {
-        canvas.drawLine(
-            Offset(corner.dx + 1.5, y), Offset(corner.dx + 12.5, y), slat);
-      }
-      // Trilho-guia central da esteira.
-      canvas.drawLine(
-        Offset(corner.dx + 7, corner.dy),
-        Offset(corner.dx + 7, corner.dy + 27),
-        rail,
-      );
-      canvas.restore();
-      canvas.drawRRect(pod, outline);
     }
 
-    // ------------------------- torre (gira pelo ângulo de mira) ------------
+    // ------------------------- rodas com pneus girando ---------------------
+    for (final corner in [
+      const Offset(0, 1),
+      Offset(w - 20, 1),
+      Offset(0, h - 27),
+      Offset(w - 20, h - 27),
+    ]) {
+      final wheel = RRect.fromRectAndRadius(
+        Rect.fromLTWH(corner.dx, corner.dy, 20, 26),
+        const Radius.circular(9),
+      );
+      canvas.drawRRect(wheel, Paint()..color = _tire);
+      canvas.save();
+      canvas.clipRRect(wheel);
+      // Gomos do pneu descendo em loop.
+      final groove = Paint()
+        ..color = _tireGroove
+        ..strokeWidth = 3
+        ..strokeCap = StrokeCap.round;
+      final knob = Paint()
+        ..color = _tireEdge
+        ..strokeWidth = 1.2;
+      for (var y = corner.dy - _grooveSpacing + _treadScroll;
+          y < corner.dy + 28;
+          y += _grooveSpacing) {
+        canvas.drawLine(
+            Offset(corner.dx + 2, y), Offset(corner.dx + 18, y), groove);
+        canvas.drawLine(Offset(corner.dx + 2, y + 2.6),
+            Offset(corner.dx + 18, y + 2.6), knob);
+      }
+      // Sulco circunferencial central do pneu.
+      canvas.drawRect(
+        Rect.fromLTWH(corner.dx + 9, corner.dy, 2, 26),
+        Paint()..color = _tireGroove,
+      );
+      canvas.restore();
+      canvas.drawRRect(wheel, outline);
+    }
+
+    // --------------- canhão duplo (gira; passa por baixo da placa) ---------
     canvas.save();
-    canvas.translate(_turretCenter.dx, _turretCenter.dy);
+    canvas.translate(w / 2, h / 2);
     canvas.rotate(aimAngle);
 
-    // Canhão duplo.
-    for (final dx in const [-5.5, 5.5]) {
+    for (final dx in const [-4.5, 4.5]) {
+      // Bloco de montagem escuro (fica escondido sob a placa central).
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(dx - 3, -16, 6, 9),
+          const Radius.circular(2),
+        ),
+        Paint()..color = _dark,
+      );
+      // Cano prateado segmentado.
       final barrel = RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx - 2.2, -32, 4.4, 27),
+        Rect.fromLTWH(dx - 2.2, -34, 4.4, 20),
         const Radius.circular(2),
       );
-      canvas.drawRRect(barrel, Paint()..color = _plate);
+      canvas.drawRRect(barrel, Paint()..color = _barrel);
       canvas.drawRRect(barrel, outline);
-      // Anel do segmento.
-      canvas.drawRect(
-        Rect.fromLTWH(dx - 2.6, -19, 5.2, 4),
-        Paint()..color = _seam,
-      );
-      // Ponta azul brilhante.
+      for (final y in const [-28.0, -22.0]) {
+        canvas.drawRect(
+          Rect.fromLTWH(dx - 2.2, y, 4.4, 2.2),
+          Paint()..color = _seam,
+        );
+      }
+      // Ponta azul incandescente.
       final tip = RRect.fromRectAndRadius(
-        Rect.fromLTWH(dx - 2.7, -34.5, 5.4, 6),
-        const Radius.circular(2),
+        Rect.fromLTWH(dx - 2.8, -38.5, 5.6, 5.5),
+        const Radius.circular(2.4),
       );
       canvas.drawRRect(
         tip,
         Paint()
           ..color = _blue.withValues(alpha: 0.7)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
       );
       canvas.drawRRect(tip, Paint()..color = _blue);
-      canvas.drawRRect(tip, outline);
+      canvas.drawCircle(Offset(dx, -36), 1.1,
+          Paint()..color = const Color(0xE6FFFFFF));
     }
-
-    // Corpo da torre: placa chanfrada.
-    final housing = Path()
-      ..moveTo(-7, -11)
-      ..lineTo(7, -11)
-      ..lineTo(12, -6)
-      ..lineTo(12, 7)
-      ..lineTo(7, 12)
-      ..lineTo(-7, 12)
-      ..lineTo(-12, 7)
-      ..lineTo(-12, -6)
-      ..close();
-    canvas.drawPath(housing, Paint()..color = _plateLight);
-    canvas.drawPath(housing, outline);
-    // Detalhe traseiro e seam interno.
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(-5, 8, 10, 6),
-        const Radius.circular(2),
-      ),
-      Paint()..color = _podDark,
-    );
-    canvas.drawLine(const Offset(-8, -4), const Offset(8, -4), seam);
-
-    // Domo central azul.
-    final dome = Rect.fromCenter(
-      center: const Offset(0, -1),
-      width: 9,
-      height: 12,
-    );
-    canvas.drawOval(
-      dome,
+    // Halo suave nas bocas dos canos.
+    canvas.drawCircle(
+      const Offset(0, -38),
+      7,
       Paint()
-        ..color = _blue.withValues(alpha: 0.55)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..color = _blue.withValues(alpha: 0.22)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
     );
-    canvas.drawOval(dome, Paint()..color = _blue);
-    canvas.drawOval(dome, outline);
-    canvas.drawCircle(const Offset(-1.4, -3.4), 1.4,
-        Paint()..color = const Color(0xCCFFFFFF));
 
     canvas.restore();
+
+    // -------------- placa octogonal central + domo azul (por cima) ---------
+    final cx = w / 2;
+    final cy = h / 2;
+    final octagon = Path()
+      ..moveTo(cx - 7, cy - 13)
+      ..lineTo(cx + 7, cy - 13)
+      ..lineTo(cx + 13, cy - 7)
+      ..lineTo(cx + 13, cy + 7)
+      ..lineTo(cx + 7, cy + 13)
+      ..lineTo(cx - 7, cy + 13)
+      ..lineTo(cx - 13, cy + 7)
+      ..lineTo(cx - 13, cy - 7)
+      ..close();
+    canvas.drawPath(octagon, Paint()..color = _plateBright);
+    canvas.drawPath(octagon, outline);
+    // Seam interno da placa.
+    canvas.drawPath(
+      Path()
+        ..moveTo(cx - 5.5, cy - 10)
+        ..lineTo(cx + 5.5, cy - 10)
+        ..lineTo(cx + 10, cy - 5.5)
+        ..lineTo(cx + 10, cy + 5.5)
+        ..lineTo(cx + 5.5, cy + 10)
+        ..lineTo(cx - 5.5, cy + 10)
+        ..lineTo(cx - 10, cy + 5.5)
+        ..lineTo(cx - 10, cy - 5.5)
+        ..close(),
+      Paint()
+        ..color = _seam
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1,
+    );
+
+    // Domo azul: aro escuro + vidro com brilho.
+    canvas.drawCircle(Offset(cx, cy), 9, Paint()..color = _dark);
+    canvas.drawCircle(Offset(cx, cy), 9, outline);
+    final glass = Rect.fromCenter(
+        center: Offset(cx, cy), width: 12, height: 14.5);
+    canvas.drawOval(
+      glass,
+      Paint()
+        ..color = _blue.withValues(alpha: 0.55)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+    );
+    canvas.drawOval(glass, Paint()..color = _blue);
+    canvas.drawOval(
+      Rect.fromCenter(
+          center: Offset(cx - 1.2, cy - 2.2), width: 6.5, height: 8),
+      Paint()..color = _blueLight,
+    );
+    canvas.drawCircle(Offset(cx - 2.2, cy - 4), 1.3,
+        Paint()..color = const Color(0xF2FFFFFF));
   }
 }

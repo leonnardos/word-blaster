@@ -5,6 +5,8 @@ import '../data/word_bank.dart';
 import '../game/difficulty.dart';
 import '../services/ads_service.dart';
 import '../services/progress_service.dart';
+import '../services/sound_service.dart';
+import '../services/tts_service.dart';
 import 'game_screen.dart';
 
 class MenuScreen extends StatefulWidget {
@@ -24,6 +26,9 @@ class _MenuScreenState extends State<MenuScreen> {
       (d) => d.name == ProgressService.difficultyName,
       orElse: () => Difficulty.beginner,
     );
+    // No navegador o autoplay pode bloquear esta primeira tentativa; os
+    // toques do menu (JOGAR, volumes) tentam de novo já com gesto.
+    SoundService.playMusic();
   }
 
   void _selectDifficulty(Difficulty difficulty) {
@@ -32,6 +37,7 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Future<void> _play() async {
+    SoundService.playMusic(); // gesto do usuário: destrava o autoplay do web
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => GameScreen(difficulty: _difficulty)),
     );
@@ -46,9 +52,57 @@ class _MenuScreenState extends State<MenuScreen> {
       // Banner só no MENU: dentro da partida, nunca (atrapalha e derruba
       // retenção — o plano é anúncio recompensado no game over, fase 5).
       bottomNavigationBar: const SafeArea(child: _MenuBanner()),
-      body: SafeArea(
-        child: Center(
-          child: Column(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Fallback: degradê de brasa (usado até a arte ser adicionada).
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xFF070B14),
+                  Color(0xFF12100E),
+                  Color(0xFF2A130A),
+                ],
+                stops: [0.0, 0.62, 1.0],
+              ),
+            ),
+          ),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(0, 1.25),
+                radius: 1.0,
+                colors: [Color(0x40FF7A1A), Color(0x00000000)],
+              ),
+            ),
+          ),
+          // Arte de guerra do menu (assets/images/menu_bg.png). Sem o
+          // arquivo, o errorBuilder mantém só o degradê acima.
+          Image.asset(
+            'assets/images/menu_bg.png',
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+          // Véu escuro para o texto continuar legível sobre a arte.
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0xB3070B14),
+                  Color(0x8C070B14),
+                  Color(0xCC070B14),
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Center(
+              child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
@@ -111,6 +165,19 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
               const SizedBox(height: 10),
               _topicsButton(),
+              const SizedBox(height: 14),
+              _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
+                await ProgressService.saveMusicVolume(v);
+                SoundService.syncMusic();
+                setState(() {});
+              }),
+              const SizedBox(height: 6),
+              _volumeRow('FALA', ProgressService.voiceVolume, (v) async {
+                await ProgressService.saveVoiceVolume(v);
+                await TtsService.applyVolume();
+                TtsService.speak('hello'); // amostra para calibrar de ouvido
+                setState(() {});
+              }),
               const Spacer(),
               SizedBox(
                 width: 240,
@@ -144,6 +211,8 @@ class _MenuScreenState extends State<MenuScreen> {
             ],
           ),
         ),
+      ),
+        ],
       ),
     );
   }
@@ -278,6 +347,67 @@ class _MenuScreenState extends State<MenuScreen> {
     );
     await ProgressService.saveTopics(selection);
     setState(() {});
+  }
+
+  /// Linha de volume estilo mixer: LABEL  −  40%  +
+  Widget _volumeRow(String label, int value, void Function(int) onChanged) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 74,
+          child: Text(
+            label,
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Color(0xFF5A6284),
+              fontSize: 11,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        _stepButton('−', () => onChanged(value - 10)),
+        SizedBox(
+          width: 56,
+          child: Text(
+            '$value%',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: value == 0 ? const Color(0xFF5A6284) : Colors.white,
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        _stepButton('+', () => onChanged(value + 10)),
+        const SizedBox(width: 84), // equilibra o label à esquerda
+      ],
+    );
+  }
+
+  Widget _stepButton(String symbol, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 28,
+        height: 28,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFF10162A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFF2A3350)),
+        ),
+        child: Text(
+          symbol,
+          style: const TextStyle(
+            color: Color(0xFF00E5FF),
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _difficultyCard(Difficulty difficulty) {

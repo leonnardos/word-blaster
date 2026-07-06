@@ -10,7 +10,9 @@ import 'progress_service.dart';
 class SoundService {
   static final AudioPlayer _boom = AudioPlayer();
   static final AudioPlayer _error = AudioPlayer();
+  static final AudioPlayer _music = AudioPlayer();
   static bool _ready = false;
+  static bool _musicLoaded = false;
 
   static Future<void> init() async {
     try {
@@ -24,7 +26,32 @@ class SoundService {
     } catch (_) {
       _ready = false;
     }
+    try {
+      await _music.setReleaseMode(ReleaseMode.loop);
+      await _music.setSource(AssetSource('audio/war_theme.wav'));
+      _musicLoaded = true;
+    } catch (_) {
+      _musicLoaded = false;
+    }
   }
+
+  /// Toca (ou retoma) a trilha de guerra respeitando volume e mudo.
+  /// No navegador o autoplay é bloqueado até o primeiro gesto — por isso é
+  /// chamada de novo em toques do menu, quando já há gesto do usuário.
+  static Future<void> playMusic() async {
+    if (!_musicLoaded) return;
+    try {
+      if (!ProgressService.soundOn || ProgressService.musicVolume == 0) {
+        await _music.pause();
+        return;
+      }
+      await _music.setVolume(ProgressService.musicVolume / 100 * 0.9);
+      await _music.resume();
+    } catch (_) {}
+  }
+
+  /// Reaplica o estado da música após mudar volume ou o botão de mudo.
+  static void syncMusic() => playMusic();
 
   /// Estouro de quando uma palavra alcança o tanque e custa uma vida.
   static void playLifeLost() {

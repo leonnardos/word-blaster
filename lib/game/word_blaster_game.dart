@@ -64,6 +64,11 @@ class WordBlasterGame extends FlameGame {
   final multiplier = ValueNotifier<int>(1);
   final lives = ValueNotifier<int>(_startLives);
 
+  /// Letra digitada errada, mostrada animada no lugar do combo por ~1s.
+  /// O id incremental faz a animação reiniciar mesmo repetindo a letra.
+  final wrongLetter = ValueNotifier<(int, String)>((0, ''));
+  double _wrongLetterClock = 0;
+
   // Já nasce com o valor do nível inicial: onLoad roda durante o primeiro
   // build do GameWidget, e notificar um ValueListenableBuilder nessa fase
   // lança "setState() called during build". Com valor idêntico, nada notifica.
@@ -86,6 +91,17 @@ class WordBlasterGame extends FlameGame {
   bool get isGameOver => _isGameOver;
 
   bool get isPaused => _isPaused;
+
+  /// Preenchimento da barra de estamina (0..1) para uma sequência de
+  /// [words] palavras corretas: 5 palavras = 25%, 15 = 50%, 25 = 75%,
+  /// 35 = 100% — cada quarto da barra é um marco de multiplicador.
+  static double staminaFor(int words) {
+    if (words >= 35) return 1.0;
+    if (words >= 25) return 0.75 + (words - 25) / 10 * 0.25;
+    if (words >= 15) return 0.50 + (words - 15) / 10 * 0.25;
+    if (words >= 5) return 0.25 + (words - 5) / 10 * 0.25;
+    return words / 5 * 0.25;
+  }
 
   /// Ritmo do jogo (velocidade de queda e cadência de spawn): segue o nível
   /// quando a velocidade está em automático, ou trava no valor escolhido no
@@ -204,6 +220,12 @@ class WordBlasterGame extends FlameGame {
   void update(double dt) {
     super.update(dt);
     if (_shakeTime > 0) _shakeTime = max(0, _shakeTime - min(dt, 1 / 20));
+    if (_wrongLetterClock > 0) {
+      _wrongLetterClock -= min(dt, 1 / 20);
+      if (_wrongLetterClock <= 0) {
+        wrongLetter.value = (wrongLetter.value.$1, '');
+      }
+    }
     if (_isGameOver) return;
     final dtc = min(dt, 1 / 20);
 
@@ -328,7 +350,7 @@ class WordBlasterGame extends FlameGame {
     if (target == null || !target.isAlive || target.typed >= target.word.length) {
       target = _acquireTarget(char);
       if (target == null) {
-        _registerError(null);
+        _registerError(null, char);
         return;
       }
       _setTarget(target);
@@ -343,7 +365,7 @@ class WordBlasterGame extends FlameGame {
         _completeWord(target);
       }
     } else {
-      _registerError(target);
+      _registerError(target, char);
     }
   }
 
@@ -364,11 +386,14 @@ class WordBlasterGame extends FlameGame {
     if (enemy != null) enemy.isTargeted = true;
   }
 
-  void _registerError(WordEnemy? target) {
+  void _registerError(WordEnemy? target, String char) {
     _wrongChars++;
     streak.value = 0;
     multiplier.value = 1;
     SoundService.playError();
+    // A letra errada toma o lugar do combo no HUD por um instante.
+    wrongLetter.value = (wrongLetter.value.$1 + 1, char);
+    _wrongLetterClock = 1.0;
     if (target != null) {
       target.flashError();
       ProgressService.recordMiss(target.word);
@@ -379,10 +404,12 @@ class WordBlasterGame extends FlameGame {
     runWords++;
     _wordsThisLevel++;
     streak.value++;
+    // Estamina: 5 palavras seguidas = ×2, 15 = ×3, 25 = ×4, 35 = ×5.
     multiplier.value = switch (streak.value) {
-      >= 50 => 5,
-      >= 20 => 3,
-      >= 10 => 2,
+      >= 35 => 5,
+      >= 25 => 4,
+      >= 15 => 3,
+      >= 5 => 2,
       _ => 1,
     };
 
@@ -463,6 +490,8 @@ class WordBlasterGame extends FlameGame {
     streak.value = 0;
     multiplier.value = 1;
     lives.value = _startLives;
+    wrongLetter.value = (wrongLetter.value.$1, '');
+    _wrongLetterClock = 0;
     runXp = 0;
     runWords = 0;
     _correctChars = 0;

@@ -134,14 +134,14 @@ class Battlefield extends Component {
     const gap = 10.0;
     const period = dashH + gap; // 24 divide 96 (2 tiles): loop perfeito
     // Mesma conta do jogo para a posição do tanque (size.y - 106), começando
-    // logo atrás dele; ±21.5 = centro das esteiras no componente de 56px.
-    final trailTop = _size.y - 106 + 22;
-    for (final dx in [-21.5, 21.5]) {
+    // logo atrás dele; ±20 = centro das rodas no componente de 60px.
+    final trailTop = _size.y - 106 + 24;
+    for (final dx in [-20.0, 20.0]) {
       final x = _size.x / 2 + dx;
       for (var y = trailTop + (_scroll % period); y < _size.y + period; y += period) {
         canvas.drawRRect(
           RRect.fromRectAndRadius(
-            Rect.fromCenter(center: Offset(x, y), width: 9, height: dashH),
+            Rect.fromCenter(center: Offset(x, y), width: 11, height: dashH),
             const Radius.circular(2),
           ),
           trackPaint,

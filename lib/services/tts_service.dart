@@ -37,9 +37,16 @@ class TtsService {
     try {
       await _tts.setLanguage('en-US');
       await _tts.setSpeechRate(0.5); // levemente devagar: é para aprender
-      await _tts.setVolume(1.0);
+      await _tts.setVolume(ProgressService.voiceVolume / 100);
       await _tts.setPitch(1.0);
       if (!_voiceChosen) await _pickNaturalFemaleVoice();
+    } catch (_) {}
+  }
+
+  /// Reaplica o volume da fala após o ajuste no menu.
+  static Future<void> applyVolume() async {
+    try {
+      await _tts.setVolume(ProgressService.voiceVolume / 100);
     } catch (_) {}
   }
 

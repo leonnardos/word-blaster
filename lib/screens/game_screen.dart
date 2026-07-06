@@ -261,7 +261,7 @@ class _GameScreenState extends State<GameScreen> {
         final locked = ProgressService.speedLevel != 0;
         final shown = locked
             ? ProgressService.speedLevel
-            : min(_game.level, WordBlasterGame.speedCapLevel);
+            : WordBlasterGame.autoSpeedFor(_game.level);
         final color =
             locked ? const Color(0xFFFF4444) : const Color(0xFF00E5FF);
         return Tooltip(

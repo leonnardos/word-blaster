@@ -104,11 +104,13 @@ class WordBlasterGame extends FlameGame {
 
   bool get isPaused => _isPaused;
 
-  /// Nível atual das palavras (no modo automático, a velocidade é ele).
+  /// Nível atual das palavras.
   int get level => _level;
 
-  /// A velocidade satura neste nível: min(16 + N*3.5, 70) trava em N≈15.
-  static const speedCapLevel = 15;
+  /// Velocidade automática: sobe 1 a cada 2 níveis e trava no 8 — a mesma
+  /// escala do painel manual (travar no 8 É a velocidade máxima do jogo).
+  /// Nível 1-2 → 1, 3-4 → 2, 5-6 → 3 ... 15+ → 8.
+  static int autoSpeedFor(int level) => min(8, (level + 1) ~/ 2);
 
   /// Preenchimento da barra de estamina (0..1) para uma sequência de
   /// [words] palavras corretas: 5 palavras = 25%, 15 = 50%, 25 = 75%,
@@ -121,12 +123,13 @@ class WordBlasterGame extends FlameGame {
     return words / 5 * 0.25;
   }
 
-  /// Ritmo do jogo (velocidade de queda e cadência de spawn): segue o nível
-  /// quando a velocidade está em automático, ou trava no valor escolhido no
-  /// painel lateral. O TAMANHO das palavras continua evoluindo pelo nível —
-  /// só o relógio fica sob controle do jogador.
-  int get _paceLevel =>
-      ProgressService.speedLevel == 0 ? _level : ProgressService.speedLevel;
+  /// Ritmo do jogo (velocidade de queda e cadência de spawn): automático
+  /// (1 a cada 2 níveis, teto 8) ou travado no valor escolhido no painel.
+  /// O TAMANHO das palavras continua evoluindo pelo nível — só o relógio
+  /// fica sob controle do jogador.
+  int get _paceLevel => ProgressService.speedLevel == 0
+      ? autoSpeedFor(_level)
+      : ProgressService.speedLevel;
 
   void pause() {
     if (_isGameOver || _isPaused || _inspected != null) return;

@@ -18,4 +18,17 @@ void main() {
       );
     }
   });
+
+  test('velocidade automática: sobe 1 a cada 2 níveis, teto no 8', () {
+    expect(WordBlasterGame.autoSpeedFor(1), 1);
+    expect(WordBlasterGame.autoSpeedFor(2), 1);
+    expect(WordBlasterGame.autoSpeedFor(3), 2);
+    expect(WordBlasterGame.autoSpeedFor(4), 2);
+    expect(WordBlasterGame.autoSpeedFor(5), 3);
+    expect(WordBlasterGame.autoSpeedFor(9), 5);
+    expect(WordBlasterGame.autoSpeedFor(14), 7);
+    expect(WordBlasterGame.autoSpeedFor(15), 8);
+    expect(WordBlasterGame.autoSpeedFor(16), 8);
+    expect(WordBlasterGame.autoSpeedFor(50), 8, reason: 'nunca passa do 8');
+  });
 }

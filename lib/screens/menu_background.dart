@@ -173,6 +173,7 @@ class _BattleScenePainter extends CustomPainter {
       text: TextSpan(
         text: text,
         style: TextStyle(
+          fontFamily: 'Orbitron',
           color: const Color(0xFFE8ECF0),
           fontSize: w * 0.030,
           fontWeight: FontWeight.w700,

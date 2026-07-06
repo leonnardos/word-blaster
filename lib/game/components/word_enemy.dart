@@ -76,6 +76,7 @@ class WordEnemy extends PositionComponent {
 
   void _rebuildText() {
     const baseStyle = TextStyle(
+      fontFamily: 'Orbitron',
       fontSize: 20,
       fontWeight: FontWeight.w600,
       letterSpacing: 1.2,
@@ -123,6 +124,7 @@ class WordEnemy extends PositionComponent {
       text: TextSpan(
         text: _showPt ? wordData.pt : '',
         style: TextStyle(
+          fontFamily: 'Orbitron',
           fontSize: hidden ? 13 : 12,
           fontStyle: FontStyle.italic,
           color: hidden

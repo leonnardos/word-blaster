@@ -244,6 +244,7 @@ class WordBlasterGame extends FlameGame {
       position: Vector2(size.x / 2, size.y * 0.35),
       textRenderer: TextPaint(
         style: const TextStyle(
+          fontFamily: 'Orbitron',
           color: Color(0xFF00E5FF),
           fontSize: 26,
           fontWeight: FontWeight.bold,

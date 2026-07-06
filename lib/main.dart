@@ -31,7 +31,9 @@ class WordBlasterApp extends StatelessWidget {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF070B14),
-        fontFamily: 'monospace',
+        // Orbitron (embutida em assets/fonts, licença OFL): geométrica
+        // sci-fi — a cara do arsenal neon do jogo. Offline como tudo aqui.
+        fontFamily: 'Orbitron',
         useMaterial3: true,
       ),
       // Moldura de tamanho de tela (média/mobile): limita a largura do app

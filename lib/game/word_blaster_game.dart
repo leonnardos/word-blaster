@@ -22,6 +22,7 @@ import 'components/word_enemy.dart';
 class WordBlasterGame extends FlameGame {
   static const overlayGameOver = 'gameOver';
   static const overlayPaused = 'paused';
+  static const overlayInspect = 'inspect';
   static const _maxEnemies = 5;
   static const _wordsPerLevel = 12;
   static const _startLives = 3;
@@ -111,10 +112,42 @@ class WordBlasterGame extends FlameGame {
       ProgressService.speedLevel == 0 ? _level : ProgressService.speedLevel;
 
   void pause() {
-    if (_isGameOver || _isPaused) return;
+    if (_isGameOver || _isPaused || _inspected != null) return;
     _isPaused = true;
     pauseEngine();
     overlays.add(overlayPaused);
+  }
+
+  // ------------------------------------------------------ inspeção de palavra
+
+  /// Palavra sendo "estudada": o jogador segurou o dedo/clique nela.
+  WordEnemy? _inspected;
+
+  WordEnemy? get inspectedEnemy => _inspected;
+
+  /// Segurar numa palavra: congela o jogo e abre o cartão de dicionário.
+  /// Retorna true se havia uma palavra no ponto tocado.
+  bool tryInspectAt(Vector2 point) {
+    if (_isGameOver || _isPaused || _inspected != null) return false;
+    for (final enemy in _enemies) {
+      if (!enemy.isAlive) continue;
+      if (enemy.toRect().inflate(8).contains(point.toOffset())) {
+        _inspected = enemy;
+        pauseEngine();
+        overlays.add(overlayInspect);
+        TtsService.speak(enemy.word); // pronúncia junto com a leitura
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Soltar o dedo/clique: fecha o cartão e o jogo volta a descer.
+  void endInspect() {
+    if (_inspected == null) return;
+    _inspected = null;
+    overlays.remove(overlayInspect);
+    if (!_isPaused && !_isGameOver) resumeEngine();
   }
 
   void resumeGame() {
@@ -343,7 +376,7 @@ class WordBlasterGame extends FlameGame {
 
   /// Recebe cada caractere digitado (teclado do sistema ou físico).
   void onTyped(String raw) {
-    if (_isGameOver || _isPaused || raw.isEmpty) return;
+    if (_isGameOver || _isPaused || _inspected != null || raw.isEmpty) return;
     final char = raw.toLowerCase();
 
     var target = _target;
@@ -478,6 +511,7 @@ class WordBlasterGame extends FlameGame {
   }
 
   void restart() {
+    endInspect();
     if (_isPaused) resumeGame();
     overlays.remove(overlayGameOver);
     for (final enemy in List.of(_enemies)) {

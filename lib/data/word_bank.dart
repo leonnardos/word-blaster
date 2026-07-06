@@ -32,6 +32,16 @@ class WordCategory {
 /// deixarem o pool pequeno demais (ex.: só "Conversação" escolhido, que é
 /// quase só frases), eles são relaxados — escolher um tópico nunca pode
 /// deixar o jogo sem variedade, muito menos sem palavras.
+/// Nome do tópico em que a palavra aparece (primeira ocorrência).
+String? topicOfWord(String en) {
+  for (final category in wordBank) {
+    for (final w in category.words) {
+      if (w.en == en) return category.name;
+    }
+  }
+  return null;
+}
+
 List<Word> candidateWords({
   required int level,
   Set<String> topics = const {},

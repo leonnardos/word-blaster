@@ -36,6 +36,7 @@ class ProgressService {
   static const _kSoundOn = 'sound_on';
   static const _kMusicVolume = 'music_volume';
   static const _kVoiceVolume = 'voice_volume';
+  static const _kMusicOn = 'music_on';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -62,6 +63,10 @@ class ProgressService {
   static int musicVolume = 40;
   static int voiceVolume = 100;
 
+  /// Trilha sonora ligada/desligada (botão próprio no jogo, independente
+  /// do mudo geral e do volume).
+  static bool musicOn = true;
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -79,6 +84,7 @@ class ProgressService {
     soundOn = _prefs.getBool(_kSoundOn) ?? true;
     musicVolume = (_prefs.getInt(_kMusicVolume) ?? 40).clamp(0, 100);
     voiceVolume = (_prefs.getInt(_kVoiceVolume) ?? 100).clamp(0, 100);
+    musicOn = _prefs.getBool(_kMusicOn) ?? true;
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -132,6 +138,11 @@ class ProgressService {
   static Future<void> saveVoiceVolume(int volume) async {
     voiceVolume = volume.clamp(0, 100);
     await _prefs.setInt(_kVoiceVolume, voiceVolume);
+  }
+
+  static Future<void> saveMusicOn(bool on) async {
+    musicOn = on;
+    await _prefs.setBool(_kMusicOn, on);
   }
 
   static void recordHit(String word) => statFor(word).hits++;

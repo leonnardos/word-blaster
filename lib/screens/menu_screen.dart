@@ -8,6 +8,7 @@ import '../services/progress_service.dart';
 import '../services/sound_service.dart';
 import '../services/tts_service.dart';
 import 'game_screen.dart';
+import 'menu_background.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -55,35 +56,17 @@ class _MenuScreenState extends State<MenuScreen> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Fallback: degradê de brasa (usado até a arte ser adicionada).
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFF070B14),
-                  Color(0xFF12100E),
-                  Color(0xFF2A130A),
-                ],
-                stops: [0.0, 0.62, 1.0],
-              ),
-            ),
-          ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment(0, 1.25),
-                radius: 1.0,
-                colors: [Color(0x40FF7A1A), Color(0x00000000)],
-              ),
-            ),
-          ),
-          // Arte de guerra do menu (assets/images/menu_bg.png). Sem o
-          // arquivo, o errorBuilder mantém só o degradê acima.
+          // Arte de batalha pintada por código (tanque, fogo, fumaça,
+          // destroços de palavras) — recriação da referência do usuário.
+          const MenuBackground(),
+          // A arte do usuário (assets/images/menu_bg.png) cobre a pintura;
+          // sem o arquivo, o errorBuilder não mostra nada. FilterQuality.high
+          // é essencial: o padrão (low) borra a imagem ao redimensionar.
           Image.asset(
             'assets/images/menu_bg.png',
             fit: BoxFit.cover,
+            filterQuality: FilterQuality.high,
+            isAntiAlias: true,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
           // Véu escuro para o texto continuar legível sobre a arte.
@@ -94,7 +77,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Color(0xB3070B14),
-                  Color(0x8C070B14),
+                  Color(0x99070B14),
                   Color(0xCC070B14),
                 ],
               ),
@@ -148,9 +131,10 @@ class _MenuScreenState extends State<MenuScreen> {
               const Text(
                 'ESCOLHA SEU NÍVEL',
                 style: TextStyle(
-                  color: Color(0xFF5A6284),
+                  color: Color(0xFF9AA3BC),
                   fontSize: 11,
                   letterSpacing: 3,
+                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
                 ),
               ),
               const SizedBox(height: 12),
@@ -360,9 +344,10 @@ class _MenuScreenState extends State<MenuScreen> {
             label,
             textAlign: TextAlign.right,
             style: const TextStyle(
-              color: Color(0xFF5A6284),
+              color: Color(0xFF9AA3BC),
               fontSize: 11,
               letterSpacing: 2,
+              shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
             ),
           ),
         ),
@@ -483,9 +468,10 @@ class _MenuScreenState extends State<MenuScreen> {
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF5A6284),
+              color: Color(0xFF9AA3BC),
               fontSize: 11,
               letterSpacing: 2,
+              shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
             ),
           ),
         ],

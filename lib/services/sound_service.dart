@@ -41,7 +41,9 @@ class SoundService {
   static Future<void> playMusic() async {
     if (!_musicLoaded) return;
     try {
-      if (!ProgressService.soundOn || ProgressService.musicVolume == 0) {
+      if (!ProgressService.soundOn ||
+          !ProgressService.musicOn ||
+          ProgressService.musicVolume == 0) {
         await _music.pause();
         return;
       }

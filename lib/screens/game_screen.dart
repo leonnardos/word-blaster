@@ -1,15 +1,24 @@
 import 'dart:math';
 
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../data/word_bank.dart';
+import '../data/word_examples.dart';
 import '../game/difficulty.dart';
 import '../game/screen_size.dart';
 import '../game/word_blaster_game.dart';
 import '../services/progress_service.dart';
 import '../services/sound_service.dart';
 import '../services/tts_service.dart';
+
+/// Celular (nativo ou navegador) usa o teclado próprio do jogo — o teclado
+/// do sistema esmaga o layout e rola a página.
+bool get _isMobileDevice =>
+    defaultTargetPlatform == TargetPlatform.android ||
+    defaultTargetPlatform == TargetPlatform.iOS;
 
 /// Tela de jogo com duas rotas de digitação:
 ///  1. Campo de texto invisível — abre o teclado virtual no celular.
@@ -39,9 +48,12 @@ class _GameScreenState extends State<GameScreen> {
     HardwareKeyboard.instance.addHandler(_onHardwareKey);
     // O GameWidget também pede autofocus e costuma vencer a disputa; sem este
     // pedido pós-frame o campo nunca foca e a digitação morre na 1ª partida.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _focusNode.requestFocus();
-    });
+    // No celular NÃO focamos: o teclado é o do jogo, não o do sistema.
+    if (!_isMobileDevice) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -80,12 +92,12 @@ class _GameScreenState extends State<GameScreen> {
   void _restart() {
     _game.restart();
     // Sem isso o teclado fecha após o game over e o jogador não digita mais.
-    _focusNode.requestFocus();
+    if (!_isMobileDevice) _focusNode.requestFocus();
   }
 
   void _resumeFromPause() {
     _game.resumeGame();
-    _focusNode.requestFocus();
+    if (!_isMobileDevice) _focusNode.requestFocus();
   }
 
   /// Coluna lateral de controles rápidos: velocidade (todas as plataformas)
@@ -106,6 +118,8 @@ class _GameScreenState extends State<GameScreen> {
             Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                _musicButton(),
+                const SizedBox(height: 6),
                 _soundButton(),
                 const SizedBox(height: 6),
                 _speedButton(),
@@ -127,6 +141,38 @@ class _GameScreenState extends State<GameScreen> {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _musicButton() {
+    final on = ProgressService.musicOn;
+    return Tooltip(
+      message: on ? 'Parar a música' : 'Tocar a música',
+      child: GestureDetector(
+        onTap: () {
+          ProgressService.saveMusicOn(!on);
+          SoundService.syncMusic();
+          setState(() {});
+          _focusNode.requestFocus();
+        },
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xB010162A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: on ? const Color(0xFF2A3350) : const Color(0xFFFF2E88),
+            ),
+          ),
+          child: Icon(
+            on ? Icons.music_note : Icons.music_off,
+            size: 16,
+            color: on ? const Color(0xFF8A93B2) : const Color(0xFFFF2E88),
+          ),
         ),
       ),
     );
@@ -321,12 +367,17 @@ class _GameScreenState extends State<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF070B14),
-      resizeToAvoidBottomInset: true,
-      body: GestureDetector(
-        // Toque em qualquer lugar reabre o teclado.
-        onTap: () => _focusNode.requestFocus(),
+    final gameArea = Listener(
+      // Segurar numa palavra abre o cartão de dicionário (jogo congela);
+      // soltar em qualquer lugar fecha e o jogo continua.
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) => _game
+          .tryInspectAt(Vector2(event.localPosition.dx, event.localPosition.dy)),
+      onPointerUp: (_) => _game.endInspect(),
+      onPointerCancel: (_) => _game.endInspect(),
+      child: GestureDetector(
+        // Toque em qualquer lugar reabre o teclado (desktop/web).
+        onTap: _isMobileDevice ? null : () => _focusNode.requestFocus(),
         child: Stack(
           children: [
             GameWidget(
@@ -336,6 +387,8 @@ class _GameScreenState extends State<GameScreen> {
                     _GameOverOverlay(game: game, onRestart: _restart),
                 WordBlasterGame.overlayPaused: (context, WordBlasterGame game) =>
                     _PauseOverlay(onResume: _resumeFromPause),
+                WordBlasterGame.overlayInspect: (context, WordBlasterGame game) =>
+                    _InspectOverlay(game: game),
               },
             ),
             _Hud(game: _game),
@@ -346,27 +399,237 @@ class _GameScreenState extends State<GameScreen> {
               bottom: 8,
               child: _StaminaBar(game: _game),
             ),
-            // Campo invisível: só existe para capturar a digitação.
-            Positioned(
-              left: 0,
-              bottom: 0,
-              width: 1,
-              height: 1,
-              child: Opacity(
-                opacity: 0,
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  autofocus: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  keyboardType: TextInputType.visiblePassword,
-                  textCapitalization: TextCapitalization.none,
-                  onChanged: _onChanged,
+            // Campo invisível: captura a digitação no desktop/web. No celular
+            // não existe — o teclado do jogo alimenta onTyped diretamente.
+            if (!_isMobileDevice)
+              Positioned(
+                left: 0,
+                bottom: 0,
+                width: 1,
+                height: 1,
+                child: Opacity(
+                  opacity: 0,
+                  child: TextField(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    autofocus: true,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    keyboardType: TextInputType.visiblePassword,
+                    textCapitalization: TextCapitalization.none,
+                    onChanged: _onChanged,
+                  ),
                 ),
               ),
-            ),
           ],
+        ),
+      ),
+    );
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF070B14),
+      resizeToAvoidBottomInset: false,
+      body: _isMobileDevice
+          ? Column(
+              children: [
+                Expanded(child: gameArea),
+                _MobileKeyboard(onKey: _game.onTyped),
+              ],
+            )
+          : gameArea,
+    );
+  }
+}
+
+/// Teclado embutido para celular (estilo ZType): o teclado do sistema
+/// esmaga o layout, então o jogo tem o seu próprio.
+class _MobileKeyboard extends StatelessWidget {
+  final void Function(String) onKey;
+
+  const _MobileKeyboard({required this.onKey});
+
+  static const _rows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF0A0F1C),
+      padding: EdgeInsets.only(
+        top: 6,
+        left: 4,
+        right: 4,
+        bottom: 6 + MediaQuery.of(context).padding.bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final row in _rows)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Row(
+                children: [
+                  if (row.length < 10) Spacer(flex: 10 - row.length),
+                  for (final letter in row.split(''))
+                    Expanded(flex: 2, child: _key(letter)),
+                  if (row.length < 10) Spacer(flex: 10 - row.length),
+                ],
+              ),
+            ),
+          Row(
+            children: [
+              const Spacer(flex: 2),
+              Expanded(flex: 6, child: _key(' ', label: 'ESPAÇO')),
+              const Spacer(flex: 2),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _key(String char, {String? label}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: GestureDetector(
+        // onTapDown: dispara já no toque — em jogo de reflexo, cada
+        // milissegundo de resposta do teclado conta.
+        onTapDown: (_) {
+          HapticFeedback.lightImpact();
+          onKey(char);
+        },
+        child: Container(
+          height: 46,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFF141A2E),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0xFF2A3350)),
+          ),
+          child: Text(
+            label ?? char.toUpperCase(),
+            style: TextStyle(
+              color: const Color(0xFFD5E2F0),
+              fontSize: label == null ? 18 : 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: label == null ? 0 : 2,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Cartão de dicionário (segure a palavra para ler; solte para continuar):
+/// palavra, pronúncia, tradução, tópico e frase de exemplo com tradução.
+class _InspectOverlay extends StatelessWidget {
+  final WordBlasterGame game;
+
+  const _InspectOverlay({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final enemy = game.inspectedEnemy;
+    if (enemy == null) return const SizedBox.shrink();
+    final word = enemy.wordData;
+    final example = wordExamples[word.en];
+    final topic = topicOfWord(word.en);
+
+    return IgnorePointer(
+      // O cartão não captura toques: o soltar precisa chegar ao Listener.
+      child: Container(
+        color: const Color(0xD9070B14),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 420),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10162A),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+            boxShadow: const [
+              BoxShadow(color: Color(0x5500E5FF), blurRadius: 24),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      word.en,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  const Icon(Icons.volume_up,
+                      color: Color(0xFF00E5FF), size: 22),
+                ],
+              ),
+              if (topic != null)
+                Container(
+                  margin: const EdgeInsets.only(top: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0E2A33),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF00E5FF)),
+                  ),
+                  child: Text(
+                    topic,
+                    style: const TextStyle(
+                        color: Color(0xFF00E5FF), fontSize: 11),
+                  ),
+                ),
+              const SizedBox(height: 10),
+              Text(
+                word.pt,
+                style: const TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (example != null) ...[
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 10),
+                  child: Divider(color: Color(0xFF2A3350), height: 1),
+                ),
+                Text(
+                  example.$1,
+                  style: const TextStyle(
+                    color: Color(0xFFE8ECF0),
+                    fontSize: 16,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  example.$2,
+                  style: const TextStyle(
+                      color: Color(0xFF8A93B2), fontSize: 14),
+                ),
+              ],
+              const SizedBox(height: 14),
+              const Center(
+                child: Text(
+                  'SOLTE PARA CONTINUAR',
+                  style: TextStyle(
+                    color: Color(0xFF5A6284),
+                    fontSize: 10,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

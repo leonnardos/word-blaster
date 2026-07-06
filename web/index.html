@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Word Blaster — digite, destrua e aprenda inglês jogando.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Word Blaster">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Word Blaster — aprenda inglês jogando</title>
+  <link rel="manifest" href="manifest.json">
+
+  <!-- ============================================================
+       BANNERS LATERAIS (AdSense) — estilo ZType.
+       Aparecem só em monitores largos (≥1360px), nas faixas escuras
+       que sobram quando o jogo está em tela MÉDIA ou MOBILE.
+
+       PARA ATIVAR (depois que o site estiver publicado num domínio
+       e aprovado no AdSense — adsense.google.com):
+       1. Descomente o <script> do adsbygoogle abaixo e coloque seu
+          client id (ca-pub-XXXXXXXX).
+       2. Dentro de cada <div class="side-ad"> cole o bloco <ins>
+          da sua unidade de anúncio (display 300x600 ou 160x600).
+       3. Troque display:none por display:block na media query.
+       ============================================================ -->
+  <!--
+  <script async
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-SEU_CLIENT_ID"
+    crossorigin="anonymous"></script>
+  -->
+  <style>
+    .side-ad {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 300px;
+      height: 600px;
+      z-index: 10;
+      display: none;
+    }
+    #side-ad-left  { left: 16px; }
+    #side-ad-right { right: 16px; }
+    @media (min-width: 1360px) {
+      .side-ad { display: none; /* troque para block ao ativar o AdSense */ }
+    }
+  </style>
+</head>
+<body>
+  <div id="side-ad-left" class="side-ad">
+    <!-- cole aqui o <ins class="adsbygoogle"> da unidade esquerda -->
+  </div>
+  <div id="side-ad-right" class="side-ad">
+    <!-- cole aqui o <ins class="adsbygoogle"> da unidade direita -->
+  </div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

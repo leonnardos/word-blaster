@@ -37,6 +37,7 @@ class ProgressService {
   static const _kMusicVolume = 'music_volume';
   static const _kVoiceVolume = 'voice_volume';
   static const _kMusicOn = 'music_on';
+  static const _kShowTranslation = 'show_translation';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -67,6 +68,10 @@ class ProgressService {
   /// do mudo geral e do volume).
   static bool musicOn = true;
 
+  /// Tradução PT-BR embaixo das palavras. Desligar = modo recall ativo
+  /// (dá para espiar segurando a palavra — cartão de dicionário).
+  static bool showTranslation = true;
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -85,6 +90,7 @@ class ProgressService {
     musicVolume = (_prefs.getInt(_kMusicVolume) ?? 40).clamp(0, 100);
     voiceVolume = (_prefs.getInt(_kVoiceVolume) ?? 100).clamp(0, 100);
     musicOn = _prefs.getBool(_kMusicOn) ?? true;
+    showTranslation = _prefs.getBool(_kShowTranslation) ?? true;
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -143,6 +149,11 @@ class ProgressService {
   static Future<void> saveMusicOn(bool on) async {
     musicOn = on;
     await _prefs.setBool(_kMusicOn, on);
+  }
+
+  static Future<void> saveShowTranslation(bool show) async {
+    showTranslation = show;
+    await _prefs.setBool(_kShowTranslation, show);
   }
 
   static void recordHit(String word) => statFor(word).hits++;

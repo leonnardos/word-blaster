@@ -150,6 +150,13 @@ class WordBlasterGame extends FlameGame {
     if (!_isPaused && !_isGameOver) resumeEngine();
   }
 
+  /// Liga/desliga a tradução nas palavras que já estão na tela.
+  void refreshTranslations() {
+    for (final enemy in _enemies) {
+      enemy.refreshText();
+    }
+  }
+
   void resumeGame() {
     if (!_isPaused) return;
     _isPaused = false;

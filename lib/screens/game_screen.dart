@@ -123,6 +123,8 @@ class _GameScreenState extends State<GameScreen> {
                 _soundButton(),
                 const SizedBox(height: 6),
                 _speedButton(),
+                const SizedBox(height: 6),
+                _translationButton(),
                 if (isScreenSizeSelectorAvailable) ...[
                   const SizedBox(height: 16),
                   ValueListenableBuilder<ScreenSize>(
@@ -172,6 +174,40 @@ class _GameScreenState extends State<GameScreen> {
             on ? Icons.music_note : Icons.music_off,
             size: 16,
             color: on ? const Color(0xFF8A93B2) : const Color(0xFFFF2E88),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _translationButton() {
+    final on = ProgressService.showTranslation;
+    return Tooltip(
+      message: on
+          ? 'Ocultar tradução (modo desafio)'
+          : 'Mostrar tradução',
+      child: GestureDetector(
+        onTap: () {
+          ProgressService.saveShowTranslation(!on);
+          _game.refreshTranslations();
+          setState(() {});
+          if (!_isMobileDevice) _focusNode.requestFocus();
+        },
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xB010162A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: on ? const Color(0xFF2A3350) : const Color(0xFFFFB020),
+            ),
+          ),
+          child: Icon(
+            Icons.translate,
+            size: 16,
+            color: on ? const Color(0xFF8A93B2) : const Color(0xFFFFB020),
           ),
         ),
       ),
@@ -455,30 +491,31 @@ class _MobileKeyboard extends StatelessWidget {
     return Container(
       color: const Color(0xFF0A0F1C),
       padding: EdgeInsets.only(
-        top: 6,
-        left: 4,
-        right: 4,
-        bottom: 6 + MediaQuery.of(context).padding.bottom,
+        top: 3,
+        left: 2,
+        right: 2,
+        bottom: 3 + MediaQuery.of(context).padding.bottom,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           for (final row in _rows)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 5),
-              child: Row(
-                children: [
-                  if (row.length < 10) Spacer(flex: 10 - row.length),
-                  for (final letter in row.split(''))
-                    Expanded(flex: 2, child: _key(letter)),
-                  if (row.length < 10) Spacer(flex: 10 - row.length),
-                ],
-              ),
+            Row(
+              children: [
+                if (row.length < 10) Spacer(flex: 10 - row.length),
+                for (final letter in row.split(''))
+                  Expanded(
+                      flex: 2, child: _KeyCap(char: letter, onKey: onKey)),
+                if (row.length < 10) Spacer(flex: 10 - row.length),
+              ],
             ),
           Row(
             children: [
               const Spacer(flex: 2),
-              Expanded(flex: 6, child: _key(' ', label: 'ESPAÇO')),
+              Expanded(
+                flex: 6,
+                child: _KeyCap(char: ' ', label: 'ESPAÇO', onKey: onKey),
+              ),
               const Spacer(flex: 2),
             ],
           ),
@@ -486,32 +523,72 @@ class _MobileKeyboard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _key(String char, {String? label}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2),
-      child: GestureDetector(
-        // onTapDown: dispara já no toque — em jogo de reflexo, cada
-        // milissegundo de resposta do teclado conta.
-        onTapDown: (_) {
-          HapticFeedback.lightImpact();
-          onKey(char);
-        },
-        child: Container(
-          height: 46,
+/// Tecla individual: a célula INTEIRA é área de toque (o vão entre teclas é
+/// só visual, dentro da célula) e acende em ciano no instante do toque.
+class _KeyCap extends StatefulWidget {
+  final String char;
+  final String? label;
+  final void Function(String) onKey;
+
+  const _KeyCap({required this.char, this.label, required this.onKey});
+
+  @override
+  State<_KeyCap> createState() => _KeyCapState();
+}
+
+class _KeyCapState extends State<_KeyCap> {
+  bool _pressed = false;
+
+  void _release() {
+    // Segura o "aceso" por um instante para o olho registrar o toque
+    // mesmo num tap rápido.
+    Future.delayed(const Duration(milliseconds: 90), () {
+      if (mounted) setState(() => _pressed = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Listener(
+      // opaque: captura o toque na célula toda, incluindo os vãos.
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (_) {
+        HapticFeedback.lightImpact();
+        setState(() => _pressed = true);
+        widget.onKey(widget.char); // dispara no toque: reflexo conta
+      },
+      onPointerUp: (_) => _release(),
+      onPointerCancel: (_) => _release(),
+      child: Padding(
+        padding: const EdgeInsets.all(2.5),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 60),
+          height: 50,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: const Color(0xFF141A2E),
+            color:
+                _pressed ? const Color(0xFF0E3A46) : const Color(0xFF141A2E),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF2A3350)),
+            border: Border.all(
+              color:
+                  _pressed ? const Color(0xFF00E5FF) : const Color(0xFF2A3350),
+              width: _pressed ? 1.8 : 1,
+            ),
+            boxShadow: _pressed
+                ? const [BoxShadow(color: Color(0x8000E5FF), blurRadius: 10)]
+                : const [],
           ),
           child: Text(
-            label ?? char.toUpperCase(),
+            widget.label ?? widget.char.toUpperCase(),
             style: TextStyle(
-              color: const Color(0xFFD5E2F0),
-              fontSize: label == null ? 18 : 12,
+              color: _pressed
+                  ? const Color(0xFF00E5FF)
+                  : const Color(0xFFD5E2F0),
+              fontSize: widget.label == null ? 19 : 12,
               fontWeight: FontWeight.w600,
-              letterSpacing: label == null ? 0 : 2,
+              letterSpacing: widget.label == null ? 0 : 2,
             ),
           ),
         ),

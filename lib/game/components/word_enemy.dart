@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
 import '../../data/word_bank.dart';
+import '../../services/progress_service.dart';
 
 /// Inimigo-palavra que desce em direção à nave.
 ///
@@ -33,6 +34,7 @@ class WordEnemy extends PositionComponent {
 
   late TextPainter _enPainter;
   late TextPainter _ptPainter;
+  bool _showPt = true;
   double _bottomLimit = double.infinity;
 
   WordEnemy({
@@ -60,6 +62,9 @@ class WordEnemy extends PositionComponent {
     }
   }
 
+  /// Reconstrói o texto quando o jogador liga/desliga a tradução.
+  void refreshText() => _rebuildText();
+
   set bottomLimit(double value) => _bottomLimit = value;
 
   void _rebuildText() {
@@ -84,9 +89,12 @@ class WordEnemy extends PositionComponent {
       textDirection: TextDirection.ltr,
     )..layout();
 
+    // Modo recall ativo: sem tradução, a caixinha colapsa e a palavra fica
+    // centralizada — e ainda dá para espiar segurando (cartão de dicionário).
+    _showPt = ProgressService.showTranslation;
     _ptPainter = TextPainter(
       text: TextSpan(
-        text: wordData.pt,
+        text: _showPt ? wordData.pt : '',
         style: const TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
@@ -98,8 +106,12 @@ class WordEnemy extends PositionComponent {
 
     final textWidth =
         _enPainter.width > _ptPainter.width ? _enPainter.width : _ptPainter.width;
-    size = Vector2(textWidth + 28, _enPainter.height + _ptPainter.height + 18);
+    size = Vector2(textWidth + 28, _contentHeight + 14);
   }
+
+  /// Altura real do conteúdo: só a palavra, ou palavra + tradução.
+  double get _contentHeight =>
+      _enPainter.height + (_showPt ? _ptPainter.height + 2 : 0);
 
   /// Chamado pelo projétil ao atingir o inimigo. O destaque das letras já
   /// aconteceu na digitação; aqui fica só o flash e a destruição final.
@@ -171,9 +183,13 @@ class WordEnemy extends PositionComponent {
     }
     canvas.drawRRect(rect, border);
 
+    // Conteúdo centralizado verticalmente (com ou sem tradução).
+    final top = (size.y - _contentHeight) / 2;
     final enX = (size.x - _enPainter.width) / 2;
-    _enPainter.paint(canvas, Offset(enX, 7));
-    final ptX = (size.x - _ptPainter.width) / 2;
-    _ptPainter.paint(canvas, Offset(ptX, 7 + _enPainter.height + 2));
+    _enPainter.paint(canvas, Offset(enX, top));
+    if (_showPt) {
+      final ptX = (size.x - _ptPainter.width) / 2;
+      _ptPainter.paint(canvas, Offset(ptX, top + _enPainter.height + 2));
+    }
   }
 }

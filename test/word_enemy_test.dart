@@ -2,6 +2,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:word_blaster/data/word_bank.dart';
 import 'package:word_blaster/game/components/word_enemy.dart';
+import 'package:word_blaster/services/progress_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -55,6 +56,16 @@ void main() {
       expect(enemy.position.x, xBefore);
       expect(enemy.position.y, greaterThan(420));
     });
+  });
+
+  test('sem tradução a caixa colapsa (fica mais baixa)', () {
+    ProgressService.showTranslation = true;
+    final comTraducao = build(position: Vector2(100, 100));
+    ProgressService.showTranslation = false;
+    final semTraducao = build(position: Vector2(100, 100));
+    ProgressService.showTranslation = true; // não vaza para outros testes
+    expect(semTraducao.size.y, lessThan(comTraducao.size.y),
+        reason: 'a palavra deve ficar centralizada, sem o vão da tradução');
   });
 
   test('letra acende na tecla (advanceTyped), sem depender da bala', () {

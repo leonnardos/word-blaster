@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
 import 'progress_service.dart';
@@ -11,6 +12,11 @@ class TtsService {
   static final FlutterTts _tts = FlutterTts();
   static bool _ready = false;
   static bool _voiceChosen = false;
+
+  /// Diagnóstico: qual voz foi escolhida (visível ao tocar na versão do
+  /// menu) — para descobrir à distância por que um celular fala errado.
+  static final ValueNotifier<String> voiceInfo =
+      ValueNotifier('procurando voz…');
 
   /// Fila de pronúncia: destruir duas palavras em sequência rápida não pode
   /// engolir a segunda — cada uma espera a anterior terminar.
@@ -35,7 +41,9 @@ class TtsService {
 
   static Future<void> _applySettings() async {
     try {
-      await _tts.setLanguage('en-US');
+      // Melhor esforço enquanto as vozes não carregam; a escolha real
+      // (com o locale EXATO da plataforma) acontece em _pickNaturalFemaleVoice.
+      if (!_voiceChosen) await _tts.setLanguage('en-US');
       await _tts.setSpeechRate(0.5); // levemente devagar: é para aprender
       await _tts.setVolume(ProgressService.voiceVolume / 100);
       await _tts.setPitch(1.0);
@@ -96,9 +104,20 @@ class TtsService {
       }
 
       if (best != null) {
+        // No Chrome do ANDROID o navegador ignora a voz escolhida e só
+        // respeita o IDIOMA da fala (utterance.lang) — e lá os locales vêm
+        // com underscore ('en_US'), então setLanguage('en-US') fixo nunca
+        // casava (no-op silencioso) e a fala saía na voz padrão PT-BR.
+        // Passar o locale EXATO devolvido por getVoices funciona no
+        // desktop E no celular. Ordem importa: setLanguage troca a voz
+        // junto, então setVoice vem DEPOIS para refinar.
+        await _tts.setLanguage(best['locale']!);
         await _tts.setVoice(best);
+        voiceInfo.value = '${best['name']} · ${best['locale']}';
         // Achou uma voz boa (não só "qualquer inglês")? Para de procurar.
         if (bestScore > 1) _voiceChosen = true;
+      } else {
+        voiceInfo.value = 'sem voz de inglês (${raw.length} vozes no total)';
       }
     } catch (_) {}
   }

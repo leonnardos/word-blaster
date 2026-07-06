@@ -957,49 +957,132 @@ class _Hud extends StatelessWidget {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        // Stack em vez de Row: o placar e o combo ficam no CENTRO exato da
-        // tela, independentemente da largura dos corações e do nível.
+        // Placar e combo no canto ESQUERDO, empilhados sob os corações e
+        // semitransparentes — o centro do topo fica livre para as palavras
+        // nascendo (elas passavam por trás do placar).
         child: SizedBox(
-          height: 72,
+          height: 96,
           child: Stack(
             children: [
+              // IgnorePointer: o canto não pode "roubar" o toque de segurar
+              // uma palavra que passa por trás do placar.
               Align(
                 alignment: Alignment.topLeft,
-                child: ValueListenableBuilder<int>(
-                  valueListenable: game.lives,
-                  builder: (_, lives, __) {
-                    // Vidas crescem a cada nível; acima de 6 vira "♥ ×N" para
-                    // não engolir o HUD em telas estreitas.
-                    if (lives > 6) {
-                      return Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.favorite,
-                              color: Color(0xFFFF2E88), size: 20),
-                          const SizedBox(width: 4),
-                          Text(
-                            '×$lives',
-                            style: const TextStyle(
+                child: IgnorePointer(
+                  child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<int>(
+                      valueListenable: game.lives,
+                      builder: (_, lives, __) {
+                        // Vidas crescem a cada nível; acima de 6 vira "♥ ×N"
+                        // para não engolir o HUD em telas estreitas.
+                        if (lives > 6) {
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.favorite,
+                                  color: Color(0xFFFF2E88), size: 20),
+                              const SizedBox(width: 4),
+                              Text(
+                                '×$lives',
+                                style: const TextStyle(
+                                  color: Color(0xFFFF2E88),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          );
+                        }
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(
+                            lives,
+                            (_) => const Icon(
+                              Icons.favorite,
                               color: Color(0xFFFF2E88),
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                              size: 20,
                             ),
                           ),
-                        ],
-                      );
-                    }
-                    return Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: List.generate(
-                        lives,
-                        (_) => const Icon(
-                          Icons.favorite,
-                          color: Color(0xFFFF2E88),
-                          size: 20,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 2),
+                    // Placar discreto (translúcido, sem painel): é só
+                    // informação de canto de olho — as palavras passam por
+                    // trás sem briga visual.
+                    ValueListenableBuilder<int>(
+                      valueListenable: game.score,
+                      builder: (_, score, __) => Text(
+                        '$score',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
                         ),
                       ),
-                    );
-                  },
+                    ),
+                    ValueListenableBuilder<int>(
+                      valueListenable: game.streak,
+                      builder: (_, streak, __) {
+                        if (streak < 2) return const SizedBox.shrink();
+                        return ValueListenableBuilder<int>(
+                          valueListenable: game.multiplier,
+                          builder: (_, mult, __) => Text(
+                            mult > 1
+                                ? 'COMBO $streak  ×$mult'
+                                : 'COMBO $streak',
+                            style: TextStyle(
+                              color: const Color(0xFF00E5FF)
+                                  .withValues(alpha: 0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  ),
+                ),
+              ),
+              // A letra ERRADA continua no centro: é feedback de gameplay
+              // (dura ~1s) — no canto o jogador não veria. O centro fica
+              // livre o resto do tempo para as palavras nascendo.
+              Align(
+                alignment: Alignment.topCenter,
+                child: IgnorePointer(
+                  child: SizedBox(
+                    height: 30,
+                    child: ValueListenableBuilder<(int, String)>(
+                      valueListenable: game.wrongLetter,
+                      builder: (_, wrong, __) {
+                        final (id, char) = wrong;
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 160),
+                          switchInCurve: Curves.easeOut,
+                          switchOutCurve: Curves.easeIn,
+                          transitionBuilder: (widget, animation) =>
+                              ScaleTransition(
+                            scale: animation,
+                            child: FadeTransition(
+                                opacity: animation, child: widget),
+                          ),
+                          child: char.isEmpty
+                              ? const SizedBox.shrink()
+                              : _WrongLetterPop(
+                                  key: ValueKey('wrong-$id'),
+                                  // Minúscula, na forma da palavra.
+                                  letter: char == ' ' ? '␣' : char,
+                                ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
               Align(
@@ -1034,80 +1117,6 @@ class _Hud extends StatelessWidget {
                           size: 16,
                           color: Color(0xFF8A93B2),
                         ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Align(
-                alignment: Alignment.topCenter,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ValueListenableBuilder<int>(
-                      valueListenable: game.score,
-                      builder: (_, score, __) => Text(
-                        '$score',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.5,
-                        ),
-                      ),
-                    ),
-                    // Linha do combo — que explode na letra errada (animada)
-                    // quando o jogador erra e o combo se apaga.
-                    SizedBox(
-                      height: 28,
-                      child: ValueListenableBuilder<(int, String)>(
-                        valueListenable: game.wrongLetter,
-                        builder: (_, wrong, __) {
-                          final (id, char) = wrong;
-                          final Widget child;
-                          if (char.isNotEmpty) {
-                            child = _WrongLetterPop(
-                              key: ValueKey('wrong-$id'),
-                              // Minúscula, na forma em que aparece na palavra.
-                              letter: char == ' ' ? '␣' : char,
-                            );
-                          } else {
-                            child = ValueListenableBuilder<int>(
-                              key: const ValueKey('combo'),
-                              valueListenable: game.streak,
-                              builder: (_, streak, __) {
-                                if (streak < 2) return const SizedBox.shrink();
-                                return ValueListenableBuilder<int>(
-                                  valueListenable: game.multiplier,
-                                  builder: (_, mult, __) => Text(
-                                    mult > 1
-                                        ? 'COMBO $streak  ×$mult'
-                                        : 'COMBO $streak',
-                                    style: const TextStyle(
-                                      color: Color(0xFF00E5FF),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 2,
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          }
-                          // O combo "estoura" (encolhe/some) dando lugar à letra.
-                          return AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 160),
-                            switchInCurve: Curves.easeOut,
-                            switchOutCurve: Curves.easeIn,
-                            transitionBuilder: (widget, animation) =>
-                                ScaleTransition(
-                              scale: animation,
-                              child: FadeTransition(
-                                  opacity: animation, child: widget),
-                            ),
-                            child: child,
-                          );
-                        },
                       ),
                     ),
                   ],

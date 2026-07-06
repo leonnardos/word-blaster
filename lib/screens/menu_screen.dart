@@ -12,7 +12,7 @@ import 'menu_background.dart';
 
 /// Versão visível no canto do menu — para conferir se o celular está
 /// rodando o build novo ou um cache velho. Incrementar a cada deploy.
-const kBuildVersion = 'v0.9.2';
+const kBuildVersion = 'v0.9.3';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -218,12 +218,27 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ),
       ),
-          const Positioned(
+          Positioned(
             right: 10,
             bottom: 6,
-            child: Text(
-              kBuildVersion,
-              style: TextStyle(color: Color(0x805A6284), fontSize: 9),
+            // Tocar na versão mostra a voz que o TTS escolheu — diagnóstico
+            // para celulares que insistem em falar inglês com voz PT-BR.
+            child: GestureDetector(
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'voz: ${TtsService.voiceInfo.value}',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    duration: const Duration(seconds: 6),
+                  ),
+                );
+              },
+              child: const Text(
+                kBuildVersion,
+                style: TextStyle(color: Color(0x805A6284), fontSize: 9),
+              ),
             ),
           ),
         ],

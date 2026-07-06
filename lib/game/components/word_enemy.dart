@@ -73,8 +73,13 @@ class WordEnemy extends PositionComponent {
       fontWeight: FontWeight.w600,
       letterSpacing: 1.2,
     );
-    // Maestria (PLANO §1.4): dominada perde a tradução e ganha uma ★.
+    // Maestria (PLANO §1.4): dominada vira RECALL INVERTIDO — a palavra em
+    // inglês vem OCULTA (asteriscos + ★) e a tradução é a dica; as letras
+    // se revelam conforme o jogador acerta (aprende a grafia, ex.: 2 "m"
+    // em hammer).
     final mastery = ProgressService.statFor(word).mastery;
+    final hidden = mastery == Mastery.dominada;
+    final rest = word.substring(_typed);
     _enPainter = TextPainter(
       text: TextSpan(
         children: [
@@ -83,10 +88,12 @@ class WordEnemy extends PositionComponent {
             style: baseStyle.copyWith(color: const Color(0xFF00E5FF)),
           ),
           TextSpan(
-            text: word.substring(_typed),
+            // Oculta: mascara o que falta (espaços continuam visíveis para
+            // frases mostrarem os limites das palavras).
+            text: hidden ? rest.replaceAll(RegExp(r'[^ ]'), '*') : rest,
             style: baseStyle.copyWith(color: const Color(0xFFF5F7FA)),
           ),
-          if (mastery == Mastery.dominada)
+          if (hidden)
             TextSpan(
               text: ' ★',
               style: baseStyle.copyWith(
@@ -97,20 +104,21 @@ class WordEnemy extends PositionComponent {
       textDirection: TextDirection.ltr,
     )..layout();
 
-    // Andaime da tradução: visível (nova) → esmaecida (aprendendo) → some
-    // (dominada, ou toggle manual desligado). A caixinha colapsa e centraliza
-    // — e ainda dá para espiar segurando (cartão de dicionário).
-    _showPt =
-        ProgressService.showTranslation && mastery != Mastery.dominada;
+    // Andaime da tradução: visível (nova) → esmaecida (aprendendo).
+    // Na OCULTA a tradução é a dica principal — aparece SEMPRE (até com o
+    // toggle 文A desligado) e um pouco mais viva.
+    _showPt = hidden || ProgressService.showTranslation;
     _ptPainter = TextPainter(
       text: TextSpan(
         text: _showPt ? wordData.pt : '',
         style: TextStyle(
-          fontSize: 12,
+          fontSize: hidden ? 13 : 12,
           fontStyle: FontStyle.italic,
-          color: mastery == Mastery.aprendendo
-              ? const Color(0x668A93B2) // esmaecida: quase lá!
-              : const Color(0xFF8A93B2),
+          color: hidden
+              ? const Color(0xFFB9C2D8) // dica do recall: em destaque
+              : mastery == Mastery.aprendendo
+                  ? const Color(0x668A93B2) // esmaecida: quase lá!
+                  : const Color(0xFF8A93B2),
         ),
       ),
       textDirection: TextDirection.ltr,

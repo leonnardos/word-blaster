@@ -34,6 +34,13 @@ class WordStat {
           ? Mastery.aprendendo
           : Mastery.nova;
 
+  /// Errou uma palavra OCULTA (dominada): ela volta para "aprendendo" com
+  /// exatamente 5 acertos líquidos — o próximo acerto a esconde de novo.
+  /// Ajusta hits (não misses) para não inflar o peso de spawn para sempre.
+  void regressFromMastered() {
+    if (masteryScore > 5) hits = misses + 5;
+  }
+
   Map<String, dynamic> toJson() => {'h': hits, 'm': misses};
 
   factory WordStat.fromJson(Map<String, dynamic> json) =>

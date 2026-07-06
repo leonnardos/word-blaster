@@ -49,6 +49,22 @@ void main() {
     expect(WordStat(hits: 2, misses: 9).masteryScore, 0);
   });
 
+  test('errar palavra oculta regride para aprendendo com 5 acertos', () {
+    // Mesmo superdominada (20 acertos), o erro derruba para score 5:
+    // o próximo acerto a esconde de novo (6).
+    final stat = WordStat(hits: 20, misses: 2);
+    stat.misses++; // o erro em si
+    stat.regressFromMastered();
+    expect(stat.masteryScore, 5);
+    expect(stat.mastery, Mastery.aprendendo);
+    stat.hits++; // um acerto depois...
+    expect(stat.mastery, Mastery.dominada, reason: 'volta ao modo oculto');
+    // Palavra que NÃO estava dominada não é afetada pela regressão.
+    final nova = WordStat(hits: 2, misses: 1);
+    nova.regressFromMastered();
+    expect(nova.masteryScore, 1);
+  });
+
   group('candidateWords', () {
     test('nível 1 sem tópicos: só palavras curtas, sem frases', () {
       final pool = candidateWords(level: 1);

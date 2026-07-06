@@ -11,10 +11,10 @@ import '../services/progress_service.dart';
 import '../services/sound_service.dart';
 import '../services/tts_service.dart';
 import 'difficulty.dart';
+import 'components/battlefield.dart';
 import 'components/bullet.dart';
 import 'components/explosion.dart';
 import 'components/player_tank.dart';
-import 'components/starfield.dart';
 import 'components/word_enemy.dart';
 
 /// Jogo principal (PRD §5-§9): nave embaixo, palavras descendo, digitou certo
@@ -34,13 +34,21 @@ class WordBlasterGame extends FlameGame {
   final _random = Random();
 
   late PlayerTank _tank;
+  late Battlefield _battlefield;
   final List<WordEnemy> _enemies = [];
   WordEnemy? _target;
 
+  /// Tremida leve da tela quando um tiro acerta a palavra.
+  static const _shakeDuration = 0.14;
+  double _shakeTime = 0;
+
   /// Fila de tiros: cada letra correta enfileira uma bala, que só sai quando a
-  /// nave está apontada para o alvo — mirar primeiro, atirar depois.
+  /// torre está apontada para o alvo — mirar primeiro, atirar depois.
   final List<WordEnemy> _shotQueue = [];
   double _shotCooldown = 0;
+
+  /// Canhão duplo: as balas alternam entre o cano esquerdo e o direito.
+  bool _leftBarrel = false;
 
   /// Último alvo atirado: a nave continua mirando nele até a última bala
   /// explodir a palavra; só então volta (devagar) a apontar para cima.
@@ -101,17 +109,18 @@ class WordBlasterGame extends FlameGame {
   }
 
   @override
-  Color backgroundColor() => const Color(0xFF070B14);
+  Color backgroundColor() => const Color(0xFF16110C); // terra escura
 
   @override
   Future<void> onLoad() async {
-    add(Starfield());
+    _battlefield = Battlefield();
+    add(_battlefield);
     _tank = PlayerTank()..position = _tankHome;
     add(_tank);
     _startLevel(difficulty.startLevel, announce: true);
   }
 
-  Vector2 get _tankHome => Vector2(size.x / 2, size.y - 56);
+  Vector2 get _tankHome => Vector2(size.x / 2, size.y - 106);
 
   @override
   void onGameResize(Vector2 size) {
@@ -119,7 +128,7 @@ class WordBlasterGame extends FlameGame {
     if (isLoaded) {
       _tank.position = _tankHome;
       for (final enemy in _enemies) {
-        enemy.bottomLimit = size.y - 110;
+        enemy.bottomLimit = size.y - 160;
         // Encolher a moldura no meio da partida (seletor de tamanho de tela)
         // não pode deixar palavra presa fora da área visível.
         final half = enemy.size.x / 2;
@@ -169,9 +178,32 @@ class WordBlasterGame extends FlameGame {
     super.updateTree(min(dt, 1 / 20));
   }
 
+  /// Impacto do tiro na palavra: só a clareada rápida do cenário.
+  /// (A tremida ficou reservada para o estouro da palavra completa.)
+  void _onBulletImpact() {
+    _battlefield.flash();
+  }
+
+  @override
+  void renderTree(Canvas canvas) {
+    if (_shakeTime <= 0) {
+      super.renderTree(canvas);
+      return;
+    }
+    final strength = 2.2 * (_shakeTime / _shakeDuration); // sutil de propósito
+    canvas.save();
+    canvas.translate(
+      (_random.nextDouble() * 2 - 1) * strength,
+      (_random.nextDouble() * 2 - 1) * strength,
+    );
+    super.renderTree(canvas);
+    canvas.restore();
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
+    if (_shakeTime > 0) _shakeTime = max(0, _shakeTime - min(dt, 1 / 20));
     if (_isGameOver) return;
     final dtc = min(dt, 1 / 20);
 
@@ -194,9 +226,10 @@ class WordBlasterGame extends FlameGame {
           _tank.aimError(aimTarget.absoluteCenter) < 0.12) {
         final enemy = _shotQueue.removeAt(0);
         _watchTarget = enemy;
-        final muzzle = Vector2(sin(_tank.aimAngle), -cos(_tank.aimAngle))
-          ..scale(30);
-        add(Bullet(start: _tank.position + muzzle, target: enemy));
+        _leftBarrel = !_leftBarrel;
+        final muzzle = _tank.muzzleTip(left: _leftBarrel);
+        add(buildMuzzleFlash(muzzle, _tank.aimAngle));
+        add(Bullet(start: muzzle, target: enemy, onImpact: _onBulletImpact));
         _shotCooldown = 0.07; // rajada: 5 letras = 5 balas em sequência
       }
     } else {
@@ -229,7 +262,7 @@ class WordBlasterGame extends FlameGame {
       onDestroyed: _onEnemyDestroyed,
       onReachedBottom: _onEnemyReachedBottom,
       homingTarget: () => _tank.position,
-    )..bottomLimit = size.y - 110;
+    )..bottomLimit = size.y - 160;
     _enemies.add(enemy);
     add(enemy);
   }
@@ -381,7 +414,8 @@ class WordBlasterGame extends FlameGame {
   void _onEnemyDestroyed(WordEnemy enemy) {
     _rememberRecent(enemy.word);
     _enemies.remove(enemy);
-    add(buildExplosion(enemy.absoluteCenter));
+    add(buildFireExplosion(enemy.absoluteCenter));
+    _shakeTime = _shakeDuration; // tremida só no estouro da palavra
     enemy.removeFromParent();
     // Pronúncia junto com a explosão: som + grafia + significado no mesmo
     // instante de recompensa — é aqui que o aprendizado gruda.
@@ -391,7 +425,8 @@ class WordBlasterGame extends FlameGame {
   void _onEnemyReachedBottom(WordEnemy enemy) {
     _rememberRecent(enemy.word);
     _enemies.remove(enemy);
-    add(buildExplosion(enemy.absoluteCenter, color: const Color(0xFFFF2E88)));
+    // Maior que a de destruir: chegar no tanque é o impacto mais violento.
+    add(buildFireExplosion(enemy.absoluteCenter, scale: 1.35));
     enemy.removeFromParent();
     SoundService.playLifeLost();
     ProgressService.recordMiss(enemy.word);
@@ -406,7 +441,7 @@ class WordBlasterGame extends FlameGame {
   void _endGame() {
     _isGameOver = true;
     for (final enemy in List.of(_enemies)) {
-      add(buildExplosion(enemy.absoluteCenter, color: const Color(0xFFFF2E88)));
+      add(buildFireExplosion(enemy.absoluteCenter, scale: 1.2));
       enemy.removeFromParent();
     }
     _enemies.clear();

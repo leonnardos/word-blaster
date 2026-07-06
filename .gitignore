@@ -26,6 +26,9 @@ migrate_working_dir/
 # SDK do Flutter baixado pela Vercel durante o build (nunca versionar)
 /flutter-sdk/
 
+# Artefatos de build do Android
+android/build/
+
 # Flutter/Dart/Pub related
 **/doc/api/
 **/ios/Flutter/.last_build_id

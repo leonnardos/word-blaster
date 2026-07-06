@@ -23,6 +23,10 @@ Float64List warTheme() {
   final n = (sampleRate * dur).round();
   final samples = Float64List(n);
 
+  // Alto-falante de celular corta quase tudo abaixo de ~400 Hz — cada som
+  // precisa de corpo nos MÉDIOS, senão no telefone sobra só o estalo
+  // (bug do usuário: "só dá pra ouvir os bits"). O sub-grave continua
+  // para caixas de PC/fone.
   void addBoom(double t0, {double amp = 1}) {
     final start = (t0 * sampleRate).round();
     final len = (0.55 * sampleRate).round();
@@ -31,18 +35,28 @@ Float64List warTheme() {
       final t = i / sampleRate;
       final freq = 60 * exp(-3 * t) + 38;
       final body = sin(2 * pi * freq * t) * exp(-6 * t);
-      final thump = (rnd.nextDouble() * 2 - 1) * exp(-70 * t) * 0.4;
-      samples[(start + i) % n] += (body + thump) * 0.85 * amp;
+      // Corpo médio do taiko (~200→95 Hz + parcial inarmônica ~2.4x):
+      // é o que o celular consegue reproduzir do "don".
+      final mid = sin(2 * pi * (200 * exp(-3 * t) + 95) * t) * exp(-9 * t) * 0.68;
+      final ring = sin(2 * pi * (480 * exp(-4 * t) + 230) * t) * exp(-14 * t) * 0.4;
+      // Tapa da baqueta na pele: ruído curto, banda larga.
+      final thump = (rnd.nextDouble() * 2 - 1) * exp(-45 * t) * 0.5;
+      samples[(start + i) % n] += (body + mid + ring + thump) * 0.85 * amp;
     }
   }
 
   void addTom(double t0, {double amp = 1}) {
     final start = (t0 * sampleRate).round();
     final len = (0.28 * sampleRate).round();
+    final rnd = Random(start + 7);
     for (var i = 0; i < len; i++) {
       final t = i / sampleRate;
       final freq = 135 * exp(-4 * t) + 72;
-      samples[(start + i) % n] += sin(2 * pi * freq * t) * exp(-13 * t) * 0.5 * amp;
+      final body = sin(2 * pi * freq * t) * exp(-13 * t) * 0.5;
+      // Registro médio do tom (audível no celular) + tapa curto.
+      final mid = sin(2 * pi * (320 * exp(-5 * t) + 175) * t) * exp(-16 * t) * 0.4;
+      final slap = (rnd.nextDouble() * 2 - 1) * exp(-60 * t) * 0.22;
+      samples[(start + i) % n] += (body + mid + slap) * amp;
     }
   }
 
@@ -57,20 +71,30 @@ Float64List warTheme() {
     if (bar.isOdd) addTom(b0 + 3.75 * beat, amp: 0.55);
   }
 
-  // Drone em lá menor (A1, E2, C3) com tremolo lento.
+  // Drone em lá menor com tremolo lento, em DUAS camadas:
+  // sub (A1/E2/C3) para PC/fone + uma oitava acima (A2/E3/C4) com série
+  // harmônica mais longa (até ~1 kHz) para o celular ouvir o acorde.
   double loopFreq(double f) => (f * dur).roundToDouble() / dur;
-  final freqs = [loopFreq(55), loopFreq(82.41), loopFreq(130.81)];
+  final subFreqs = [loopFreq(55), loopFreq(82.41), loopFreq(130.81)];
+  final midFreqs = [loopFreq(110), loopFreq(164.81), loopFreq(261.63)];
   final tremFreq = loopFreq(0.25);
   for (var i = 0; i < n; i++) {
     final t = i / sampleRate;
     var drone = 0.0;
-    for (final f in freqs) {
+    for (final f in subFreqs) {
       drone += sin(2 * pi * f * t) +
           0.35 * sin(2 * pi * f * 2 * t) +
           0.15 * sin(2 * pi * f * 3 * t);
     }
-    samples[i] +=
-        drone / 3 * 0.11 * (0.72 + 0.28 * sin(2 * pi * tremFreq * t));
+    var mid = 0.0;
+    for (final f in midFreqs) {
+      mid += sin(2 * pi * f * t) +
+          0.5 * sin(2 * pi * f * 2 * t) +
+          0.3 * sin(2 * pi * f * 3 * t) +
+          0.18 * sin(2 * pi * f * 4 * t);
+    }
+    final trem = 0.72 + 0.28 * sin(2 * pi * tremFreq * t);
+    samples[i] += (drone / 3 * 0.11 + mid / 3 * 0.1) * trem;
   }
 
   var peak = 0.0;

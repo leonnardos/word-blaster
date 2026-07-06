@@ -12,7 +12,7 @@ import 'menu_background.dart';
 
 /// Versão visível no canto do menu — para conferir se o celular está
 /// rodando o build novo ou um cache velho. Incrementar a cada deploy.
-const kBuildVersion = 'v0.9.4';
+const kBuildVersion = 'v0.9.5';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -178,7 +178,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 setState(() {});
               }),
               const SizedBox(height: 6),
-              _volumeRow('FALA', ProgressService.voiceVolume, (v) async {
+              _volumeRow('PRONÚNCIA', ProgressService.voiceVolume, (v) async {
                 await ProgressService.saveVoiceVolume(v);
                 await TtsService.applyVolume();
                 TtsService.speak('hello'); // amostra para calibrar de ouvido
@@ -211,7 +211,12 @@ class _MenuScreenState extends State<MenuScreen> {
               const Text(
                 'Digite as palavras para destruir os inimigos\nantes que alcancem sua nave.',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF5A6284), fontSize: 12),
+                // Cinza bem claro + sombra: legível sobre a arte de fundo.
+                style: TextStyle(
+                  color: Color(0xFFD9DEE8),
+                  fontSize: 12,
+                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
+                ),
               ),
               const Spacer(flex: 2),
             ],
@@ -251,8 +256,10 @@ class _MenuScreenState extends State<MenuScreen> {
     final label = count == 0 ? 'TÓPICOS: TODOS' : 'TÓPICOS: $count';
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFF8A93B2),
-        side: const BorderSide(color: Color(0xFF2A3350)),
+        // Fundo escuro sólido: sem ele o botão sumia na arte do menu.
+        backgroundColor: const Color(0xE0141A2E),
+        foregroundColor: const Color(0xFFAAB4CE),
+        side: const BorderSide(color: Color(0xFF3A4568)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       ),
@@ -380,13 +387,16 @@ class _MenuScreenState extends State<MenuScreen> {
 
   /// Linha de volume estilo mixer: LABEL  −  40%  +
   Widget _volumeRow(String label, int value, void Function(int) onChanged) {
-    return Row(
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         SizedBox(
-          width: 74,
+          width: 112, // cabe "PRONÚNCIA" com letterSpacing 2
           child: Text(
             label,
+            maxLines: 1,
             textAlign: TextAlign.right,
             style: const TextStyle(
               color: Color(0xFF9AA3BC),
@@ -411,8 +421,9 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ),
         _stepButton('+', () => onChanged(value + 10)),
-        const SizedBox(width: 84), // equilibra o label à esquerda
+        const SizedBox(width: 122), // equilibra o label à esquerda
       ],
+      ),
     );
   }
 

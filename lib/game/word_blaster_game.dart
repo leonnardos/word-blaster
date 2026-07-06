@@ -70,6 +70,9 @@ class WordBlasterGame extends FlameGame {
   final multiplier = ValueNotifier<int>(1);
   final lives = ValueNotifier<int>(_startLives);
 
+  /// Fim de jogo (o HUD/controles somem para o cartão ficar limpo).
+  final isOverNotifier = ValueNotifier<bool>(false);
+
   /// Letra digitada errada, mostrada animada no lugar do combo por ~1s.
   /// O id incremental faz a animação reiniciar mesmo repetindo a letra.
   final wrongLetter = ValueNotifier<(int, String)>((0, ''));
@@ -573,6 +576,7 @@ class WordBlasterGame extends FlameGame {
 
   void _endGame() {
     _isGameOver = true;
+    isOverNotifier.value = true;
     for (final enemy in List.of(_enemies)) {
       add(buildFireExplosion(enemy.absoluteCenter, scale: 1.2));
       enemy.removeFromParent();
@@ -609,6 +613,7 @@ class WordBlasterGame extends FlameGame {
     _watchTarget = null;
     _recentWords.clear();
     _isGameOver = false;
+    isOverNotifier.value = false;
     _tank.aimStraightUp();
     _startLevel(difficulty.startLevel, announce: true);
     _startWave(1);

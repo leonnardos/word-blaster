@@ -482,13 +482,26 @@ class _GameScreenState extends State<GameScreen> {
                     _InspectOverlay(game: game),
               },
             ),
-            _Hud(game: _game),
-            _sideStrip(),
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 8,
-              child: _StaminaBar(game: _game),
+            // HUD, controles e estamina somem no fim de jogo — o cartão de
+            // resultado fica limpo, sem sobreposição (bug visto no celular).
+            Positioned.fill(
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _game.isOverNotifier,
+                builder: (_, over, __) => over
+                    ? const SizedBox.shrink()
+                    : Stack(
+                        children: [
+                          _Hud(game: _game),
+                          _sideStrip(),
+                          Positioned(
+                            left: 16,
+                            right: 16,
+                            bottom: 8,
+                            child: _StaminaBar(game: _game),
+                          ),
+                        ],
+                      ),
+              ),
             ),
             // Campo invisível: captura a digitação no desktop/web. No celular
             // não existe — o teclado do jogo alimenta onTyped diretamente.
@@ -1163,16 +1176,19 @@ class _GameOverOverlay extends StatelessWidget {
     return Container(
       color: const Color(0xCC070B14),
       alignment: Alignment.center,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 32),
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: const Color(0xFF10162A),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0xFF2A3350)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
+      // Rolável: em tela baixa (celular com teclado) o cartão não estoura.
+      child: SingleChildScrollView(
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          padding: const EdgeInsets.all(22),
+          constraints: const BoxConstraints(maxWidth: 400),
+          decoration: BoxDecoration(
+            color: const Color(0xFF10162A),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: const Color(0xFF2A3350)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
           children: [
             const Text(
               'FIM DE JOGO',
@@ -1252,6 +1268,7 @@ class _GameOverOverlay extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
     );

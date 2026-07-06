@@ -10,6 +10,10 @@ import '../services/tts_service.dart';
 import 'game_screen.dart';
 import 'menu_background.dart';
 
+/// Versão visível no canto do menu — para conferir se o celular está
+/// rodando o build novo ou um cache velho. Incrementar a cada deploy.
+const kBuildVersion = 'v0.9.1';
+
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
 
@@ -214,6 +218,14 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ),
       ),
+          const Positioned(
+            right: 10,
+            bottom: 6,
+            child: Text(
+              kBuildVersion,
+              style: TextStyle(color: Color(0x805A6284), fontSize: 9),
+            ),
+          ),
         ],
       ),
     );

@@ -66,13 +66,16 @@ class TtsService {
         final n = name.toLowerCase();
         final l = locale.toLowerCase().replaceAll('_', '-');
 
-        final isEnglish = l.startsWith('en-us') ||
-            l == 'en' ||
-            n.contains('us english') ||
-            n.contains('english (united states)');
+        // QUALQUER inglês serve (en-US, en-GB, en-AU, en...) — no Chrome do
+        // Android os rótulos variam e ficar sem voz nenhuma cai na voz
+        // padrão PT-BR lendo inglês "abrasileirado".
+        final isEnglish = l.startsWith('en') ||
+            n.contains('english') ||
+            n.contains('us english');
         if (!isEnglish) continue;
 
         var score = 1;
+        if (l.startsWith('en-us') || l == 'en') score += 20; // sotaque americano
         // Vozes femininas naturais conhecidas, por plataforma:
         if (n.contains('google us english')) score += 100; // Chrome desktop
         if (n.contains('samantha')) score += 90; // iOS / macOS
@@ -105,6 +108,9 @@ class TtsService {
   /// numa sequência muito rápida — nesse caso a mais antiga cai fora.
   static void speak(String text) {
     if (!_ready || !ProgressService.soundOn) return;
+    // Ainda sem voz de inglês? Continua procurando (no Chrome Android as
+    // vozes podem demorar bem mais que os retries da inicialização).
+    if (!_voiceChosen) _applySettings();
     if (_queue.length >= 3) _queue.removeAt(0);
     _queue.add(text);
     _drain();

@@ -620,7 +620,7 @@ class _KeyCapState extends State<_KeyCap> {
         padding: const EdgeInsets.all(2.5),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 60),
-          height: 50,
+          height: 40, // -20% (feedback do usuário: estava esticado)
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color:

@@ -340,7 +340,8 @@ class WordBlasterGame extends FlameGame {
     // pausa de 2s de respiro e vem a próxima onda.
     if (_waveRemaining > 0) {
       _spawnClock += dtc;
-      final interval = max(1.15, 2.7 - _paceLevel * 0.13);
+      // Cadência calibrada para a escala 1-8: no 8, igual à antiga 10.
+      final interval = max(1.15, 2.7 - _paceLevel * 0.1625);
       if (_spawnClock >= interval && _enemies.length < _maxEnemies) {
         _spawnClock = 0;
         if (_spawnEnemy()) _waveRemaining--;
@@ -361,7 +362,8 @@ class WordBlasterGame extends FlameGame {
     final estWidth = max(word.en.length, word.pt.length) * 13.0 + 28;
     final x = _pickSpawnX(estWidth);
     if (x == null) return false; // sem espaço livre agora
-    final speed = min(16 + _paceLevel * 3.5, 70.0) *
+    // Escala 1-8 esticada: velocidade 8 = 51 px/s (a antiga nível 10).
+    final speed = min(16 + _paceLevel * 4.375, 70.0) *
         difficulty.speedFactor *
         (0.85 + _random.nextDouble() * 0.35);
 

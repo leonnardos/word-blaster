@@ -62,6 +62,7 @@ class ProgressService {
   static const _kVoiceVolume = 'voice_volume';
   static const _kMusicOn = 'music_on';
   static const _kShowTranslation = 'show_translation';
+  static const _kHiddenMode = 'hidden_mode';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -96,6 +97,11 @@ class ProgressService {
   /// (dá para espiar segurando a palavra — cartão de dicionário).
   static bool showTranslation = true;
 
+  /// Modo estudo: TODAS as palavras vêm ocultas (asteriscos) com a tradução
+  /// como dica — treino de recall puro. O bônus ×1.5 continua só para
+  /// palavras genuinamente dominadas (6+ acertos).
+  static bool hiddenMode = false;
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -115,6 +121,7 @@ class ProgressService {
     voiceVolume = (_prefs.getInt(_kVoiceVolume) ?? 100).clamp(0, 100);
     musicOn = _prefs.getBool(_kMusicOn) ?? true;
     showTranslation = _prefs.getBool(_kShowTranslation) ?? true;
+    hiddenMode = _prefs.getBool(_kHiddenMode) ?? false;
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -178,6 +185,11 @@ class ProgressService {
   static Future<void> saveShowTranslation(bool show) async {
     showTranslation = show;
     await _prefs.setBool(_kShowTranslation, show);
+  }
+
+  static Future<void> saveHiddenMode(bool on) async {
+    hiddenMode = on;
+    await _prefs.setBool(_kHiddenMode, on);
   }
 
   static void recordHit(String word) => statFor(word).hits++;

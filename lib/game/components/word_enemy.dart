@@ -29,6 +29,7 @@ class WordEnemy extends PositionComponent {
 
   bool isTargeted = false;
   bool _dead = false;
+  bool _revealedByError = false;
   double _errorFlash = 0;
   double _hitFlash = 0;
 
@@ -65,6 +66,12 @@ class WordEnemy extends PositionComponent {
   /// Reconstrói o texto quando o jogador liga/desliga a tradução.
   void refreshText() => _rebuildText();
 
+  /// Errou uma palavra oculta: ela se revela — "ah, hammer tem dois m!".
+  void revealWord() {
+    _revealedByError = true;
+    _rebuildText();
+  }
+
   set bottomLimit(double value) => _bottomLimit = value;
 
   void _rebuildText() {
@@ -78,7 +85,10 @@ class WordEnemy extends PositionComponent {
     // se revelam conforme o jogador acerta (aprende a grafia, ex.: 2 "m"
     // em hammer).
     final mastery = ProgressService.statFor(word).mastery;
-    final hidden = mastery == Mastery.dominada;
+    // Oculta: dominada de verdade OU modo estudo ligado — a menos que um
+    // erro já tenha revelado esta palavra.
+    final hidden = !_revealedByError &&
+        (mastery == Mastery.dominada || ProgressService.hiddenMode);
     final rest = word.substring(_typed);
     _enPainter = TextPainter(
       text: TextSpan(
@@ -93,7 +103,8 @@ class WordEnemy extends PositionComponent {
             text: hidden ? rest.replaceAll(RegExp(r'[^ ]'), '*') : rest,
             style: baseStyle.copyWith(color: const Color(0xFFF5F7FA)),
           ),
-          if (hidden)
+          // A ★ marca maestria DE VERDADE (6+ acertos), não o modo estudo.
+          if (hidden && mastery == Mastery.dominada)
             TextSpan(
               text: ' ★',
               style: baseStyle.copyWith(

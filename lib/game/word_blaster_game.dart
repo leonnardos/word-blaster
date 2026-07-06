@@ -486,13 +486,15 @@ class WordBlasterGame extends FlameGame {
     if (target != null) {
       target.flashError();
       final stat = ProgressService.statFor(target.word);
-      final wasHidden = stat.mastery == Mastery.dominada;
+      final wasMastered = stat.mastery == Mastery.dominada;
       ProgressService.recordMiss(target.word);
-      if (wasHidden) {
-        // Errou a palavra oculta: regride para "aprendendo" (5 acertos) e a
-        // palavra SE REVELA na hora — "ah, hammer tem dois m!".
+      if (wasMastered) {
+        // Errou a dominada: regride para "aprendendo" (5 acertos).
         stat.regressFromMastered();
-        target.refreshText();
+      }
+      if (wasMastered || ProgressService.hiddenMode) {
+        // Palavra oculta errada SE REVELA na hora — "hammer tem dois m!".
+        target.revealWord();
       }
     }
   }

@@ -130,6 +130,8 @@ class _GameScreenState extends State<GameScreen> {
                 _speedButton(),
                 const SizedBox(height: 6),
                 _translationButton(),
+                const SizedBox(height: 6),
+                _hiddenModeButton(),
                 if (isScreenSizeSelectorAvailable) ...[
                   const SizedBox(height: 16),
                   ValueListenableBuilder<ScreenSize>(
@@ -213,6 +215,42 @@ class _GameScreenState extends State<GameScreen> {
             Icons.translate,
             size: 16,
             color: on ? const Color(0xFF8A93B2) : const Color(0xFFFFB020),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Modo estudo: TODAS as palavras vêm ocultas (recall puro). A ★ e o
+  /// bônus ×1.5 continuam exclusivos das palavras dominadas de verdade.
+  Widget _hiddenModeButton() {
+    final on = ProgressService.hiddenMode;
+    return Tooltip(
+      message: on
+          ? 'Modo estudo LIGADO: palavras ocultas, só a tradução'
+          : 'Modo estudo: ocultar todas as palavras',
+      child: GestureDetector(
+        onTap: () {
+          ProgressService.saveHiddenMode(!on);
+          _game.refreshTranslations();
+          setState(() {});
+          if (!_isMobileDevice) _focusNode.requestFocus();
+        },
+        child: Container(
+          width: 30,
+          height: 30,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xB010162A),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: on ? const Color(0xFFFFC93C) : const Color(0xFF2A3350),
+            ),
+          ),
+          child: Icon(
+            on ? Icons.visibility_off : Icons.visibility,
+            size: 16,
+            color: on ? const Color(0xFFFFC93C) : const Color(0xFF8A93B2),
           ),
         ),
       ),

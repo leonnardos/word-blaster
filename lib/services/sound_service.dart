@@ -28,7 +28,14 @@ class SoundService {
     }
     try {
       await _music.setReleaseMode(ReleaseMode.loop);
-      await _music.setSource(AssetSource('audio/war_theme.wav'));
+      try {
+        // Trilha do usuário (Iron Path Forward, cortada aos 28s para loopar
+        // sem parecer repetição — o corte reinicia na abertura forte).
+        await _music.setSource(AssetSource('audio/iron_path_loop.mp3'));
+      } catch (_) {
+        // Reserva: trilha sintetizada.
+        await _music.setSource(AssetSource('audio/war_theme.wav'));
+      }
       _musicLoaded = true;
     } catch (_) {
       _musicLoaded = false;

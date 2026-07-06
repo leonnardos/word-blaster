@@ -16,10 +16,10 @@
 | **Mira travada**: a 1ª letra digitada trava no inimigo mais próximo; você não troca de alvo até terminar a palavra | Elimina ambiguidade e cria foco total; zero decisão além de digitar | ✅ implementado |
 | **Um tiro por letra** com projétil teleguiado | Cada tecla dá feedback físico imediato — a digitação "vira" a arma | ✅ implementado |
 | **Nunca há duas palavras com a mesma inicial na tela** | Garante que a mira travada nunca frustra | ✅ implementado |
-| **Ondas (waves)** com pausa breve e contador | Ritmo de respiração: tensão → alívio → tensão maior | 🔜 Fase 1 |
+| **Ondas (waves)** com pausa breve e contador | Ritmo de respiração: tensão → alívio → tensão maior | 🔜 pendente |
 | **Inimigos especiais**: atiradores (o projétil também é palavra), divisores (quebram em palavras menores), boss de palavra longa | Variedade sem mudar a mecânica base | 🔜 Fase 3 |
 | **EMP (bomba)** carregada por digitação perfeita | Recompensa precisão com poder, não só pontos | 🔜 Fase 3 |
-| **Estética**: vetores neon, partículas, screen shake, som por tecla | "Game feel" — o jogo parece responder ao seu dedo | ⚠️ parcial (partículas ✅; som e shake 🔜 Fase 1) |
+| **Estética**: vetores neon, partículas, screen shake, som por tecla | "Game feel" — o jogo parece responder ao seu dedo | ✅ (explosões de fogo, shake no estouro, sons de erro/vida, muzzle flash, música) |
 | **Stats de fim de partida**: WPM, precisão | Auto-superação vira motivo de replay | ✅ implementado |
 
 ### 1.2 Duolingo — o que o torna viciante e eficaz
@@ -29,19 +29,19 @@
 | **Streak (ofensiva) diária** + streak freeze | Aversão à perda — o motor nº 1 de retenção deles | 🔜 Fase 2 |
 | **Sessões de 1–3 min** | Cabe em qualquer brecha do dia; sem custo de começar | ✅ partidas curtas por design |
 | **Repetição espaçada** (palavras fracas voltam) | Curva do esquecimento de Ebbinghaus | ✅ versão simples; FSFR completo na Fase 2 |
-| **Nova palavra chega com tradução, depois é testada sem ela** | Andaime (scaffolding): apoio que desaparece com a maestria | ⚠️ tradução sempre visível hoje; fade por maestria na Fase 1 |
+| **Nova palavra chega com tradução, depois é testada sem ela** | Andaime (scaffolding): apoio que desaparece com a maestria | ⚠️ parcial: toggle manual de tradução ✅ + cartão segure-para-ler ✅; fade AUTOMÁTICO por maestria pendente |
 | **Metas diárias + notificação** | Gatilho externo de hábito | 🔜 Fase 2 |
 | **Ligas semanais** | Competição com prazos curtos renova a motivação toda segunda | 🔜 Fase 4 |
-| **Celebração exagerada de acertos** | Recompensa variável, dopamina | ⚠️ explosões ✅; sons/celebrações 🔜 Fase 1 |
-| **Teste de nivelamento** | Adulto iniciante não quer começar do "the cat" se já sabe | 🔜 Fase 3 |
+| **Celebração exagerada de acertos** | Recompensa variável, dopamina | ✅ explosões de fogo + pronúncia + barra de estamina com marcos ×2..×5 |
+| **Teste de nivelamento** | Adulto iniciante não quer começar do "the cat" se já sabe | ❌ descartado (decisão do dono, 2026-07-07): o seletor manual resolve — "deixa a pessoa escolher como quer brincar" |
 
 ### 1.3 Síntese para o público BR iniciante
 
 1. **Tradução PT-BR visível na palavra** (✅ feito): iniciante não pode depender
    de inferência; ele precisa saber O QUE está digitando, senão é só um jogo de
    digitação.
-2. **Áudio da palavra ao destruir**: associa som → grafia → significado em um
-   único momento de recompensa. É o maior ganho pedagógico pendente.
+2. **Áudio da palavra ao destruir** (✅ feito: TTS com fila e voz feminina):
+   associa som → grafia → significado em um único momento de recompensa.
 3. **Maestria por palavra**: `nova → aprendendo → dominada`. Palavra dominada
    perde a tradução (recall ativo) e vale mais XP. É onde jogo e pedagogia se
    fundem.
@@ -49,17 +49,33 @@
 
 ---
 
-## 2. Estado atual (MVP jogável — concluído)
+## 2. Estado atual (atualizado em 2026-07-07 — jogo completo, no ar)
 
-- Flutter + Flame, offline-first, Android/iOS/Web/Windows
-- Modo Digitação completo: nave, palavras descendo com tradução PT-BR menor,
-  mira travada, tiro por letra, explosões, 3 vidas
-- 10 níveis/categorias (Animais → Conversação), ~190 palavras com tradução
-- XP por dificuldade, combo ×2/×3/×5, pontuação
-- Repetição ponderada por erro/acerto (persistida)
-- Anti-sobreposição de palavras no spawn
-- Recorde, XP total e estatísticas locais; tela de fim de jogo com
-  "revise estas palavras"
+**Publicado**: web em wordblaster.vercel.app (deploy automático por push no
+GitHub leonnardos/word-blaster) + APK Android compilando.
+
+- **Conteúdo**: 1003 palavras em 23 tópicos com tradução PT-BR + 1001 frases
+  de exemplo (EN+PT); sorteio aleatório entre tópicos com dificuldade por
+  tamanho; seleção de tópicos pelo jogador; pool nunca degenera (mín. 8)
+- **Combate**: veículo blindado com rodas animadas e canhão duplo giratório,
+  mísseis com rastro de fogo, muzzle flash, explosões de fogo, tremida no
+  estouro, clareada no impacto, palavras convergem para o tanque
+- **Aprendizado**: TTS com fila (voz feminina en-US) na destruição, cartão de
+  dicionário segurando a palavra (pausa o jogo), botão de ocultar tradução,
+  letra errada em vermelho animada no lugar do combo + buzz de erro,
+  repetição ponderada por erro/acerto persistida
+- **Progressão**: 3 dificuldades (Iniciante/Intermediário/Fluente), estamina
+  com marcos ×2..×5 (5/15/25/35 palavras), +1 vida por nível, velocidade
+  automática ou travada (1-8), "revise estas palavras" com 🔊 no fim de jogo
+- **Plataformas**: teclado embutido no celular (células cheias + feedback),
+  zoom out mobile (+33% de campo), moldura média/mobile no desktop com
+  laterais reservadas para anúncios, pause (botão/ESC), botões de música,
+  mudo e volumes (música/fala)
+- **Estética**: campo de batalha procedural rolando (tanque avançando),
+  menu com arte de guerra + trilha sonora de tambores em loop
+- **Monetização preparada**: AdMob com IDs de teste (banner só no menu) +
+  slots AdSense no index.html (ativar após aprovação)
+- **Qualidade**: 15 testes automatizados; analyze limpo
 
 ---
 
@@ -99,7 +115,7 @@
 | 3.3 | **Modo Áudio** | Só fala a palavra (TTS da Fase 1), sem texto — listening puro |
 | 3.4 | **Inimigos especiais** | Divisor (palavra composta quebra em duas), veloz (palavra curta rápida), tanque (palavra longa lenta) |
 | 3.5 | **EMP / poder** | Carregado por 20 letras perfeitas; limpa a tela — botão grande pro polegar |
-| 3.6 | **Teste de nivelamento** | 10 palavras na primeira abertura decidem em que nível começar |
+| 3.6 | ~~Teste de nivelamento~~ | ❌ descartado — seletor manual de dificuldade é a escolha do produto |
 | 3.7 | **+300 palavras** | Expandir banco para ~500 com frequência CEFR A1–A2 |
 
 ### Fase 4 — Competição e social (2 semanas, requer backend)
@@ -180,6 +196,56 @@ Princípios de atratividade (o que o Anki NÃO faz e nós preservamos): sessão
 curta com fim garantido, feedback imediato (explosão+TTS), zero setup de
 conteúdo, diversão como motor de retorno (nunca culpa/cobrança), monetização
 transparente, produção escrita ativa como diferencial pedagógico.
+
+## 3.3 Plano de implementação — Ranking Arcade Top 10 (2026-07-07)
+
+Ideia do produto (dono): top 10 estilo fliperama, sem cadastro — só quem entra
+no top 10 digita um apelido. Elegibilidade: velocidade em AUTO (travar = casual).
+Plano refinado por crítica de 2 agentes (fairness de jogo + técnica/Supabase).
+
+**Descoberta crítica da revisão**: o jogo tem TETO de dificuldade (velocidade
+satura no nível ~16 em 70px/s, spawn tem piso de 1.15s, máx. 5 inimigos, e
+vidas são +1/nível = estoque infinito para bons jogadores). Sem fechar isso,
+qualquer ranking vira concurso de resistência (~1M pontos/hora infinitos), não
+de habilidade — o primeiro no-lifer crava um recorde imbatível. R1 é
+pré-requisito do ranking.
+
+### Fase R0 — Ajustes de velocidade (sem backend, ~1h)
+| # | Tarefa |
+|---|---|
+| R0.1 | Botão de velocidade em AUTO mostra **"A" em ciano** (hoje parece desativado) |
+| R0.2 | Painel aberto em AUTO mostra o nível efetivo atual ("AUTO · nível 12") — em auto, velocidade = nível das palavras |
+| R0.3 | Trocar velocidade vale NA HORA para as palavras já na tela (hoje `WordEnemy.speed` é final: só as próximas mudam; retunar os inimigos ativos preservando a variância aleatória de cada um) |
+
+### Fase R1 — Fechar o jogo para competição (~1 dia)
+| # | Tarefa |
+|---|---|
+| R1.1 | **Cronômetro de partida** (tempo ATIVO: exclui pausa, inspeção e background) — dependência de todo o resto; hoje não existe |
+| R1.2 | **Fechar o teto**: velocidade continua subindo após o nível 16 (cap progressivo), spawn continua acelerando, `_maxEnemies` cresce com o nível → toda run termina por skill em ~15-25 min |
+| R1.3 | **Vidas sem estoque infinito**: +1 vida a cada 3 níveis OU cap de 5 corações |
+| R1.4 | Em run valendo ranking: inspeção de palavra com orçamento (ex.: 3 usos) e pausa limitada — hoje pausar/inspecionar é "bullet time" grátis que ainda por cima infla a duração (facilitando passar na validação!) |
+
+### Fase R2 — Backend Supabase free (~1-2 dias)
+| # | Tarefa |
+|---|---|
+| R2.1 | Tabela `scores` (nickname, score, difficulty, level, words, active_s, client_version, platform, created_at) + CHECK constraints + índice (difficulty, score DESC). **RLS ON com ZERO policy de escrita para anon** (escrita só por Edge Function com service_role — sem isso, INSERT direto via REST ignora toda a validação). Leitura por view `top10` (só nickname/score/level) |
+| R2.2 | Edge Functions: `start_session` (token + timestamp do servidor no início da run) e `submit_score` (1 submit por token; valida com as FÓRMULAS EXATAS do jogo: score ≤ words×1500, words ≤ active_s/1.15, words ≥ (level−start)×12, duração real = now−session.start) |
+| R2.3 | **Sem invariante de "30 linhas"**: insere toda submissão válida, top 10 = SELECT…LIMIT 10 (zero corrida entre jogadores simultâneos); pg_cron limpa runs fora do top com +30 dias |
+| R2.4 | Keepalive (cron ping a cada 3 dias — free tier pausa em 1 semana) + cliente degrada graciosamente ("ranking indisponível", jogo nunca depende da rede) |
+| R2.5 | Apelido: charset [A-Za-z0-9_] 3-12 forçado no servidor (mata leetspeak/homóglifos de graça), filtro de palavrões na forma normalizada, hint "não use seu nome real" (LGPD), sem unicidade (convenção de fliperama) |
+
+### Fase R3 — UX do ranking (~1 dia)
+| # | Tarefa |
+|---|---|
+| R3.1 | Game over elegível → submete e o **SERVIDOR responde a posição** (nada de decidir contra cache): top 10 → campo de apelido (pré-preenchido do local) → board com destaque; fora → **"você ficaria em 87º esta semana"** + recorde pessoal |
+| R3.2 | Menu: botão TOP 10 com abas por dificuldade + aba **SEMANAL** (reseta segunda — a chance recorrente do jogador mediano; all-time é a vitrine) |
+| R3.3 | Partida com velocidade travada/tópico filtrado: selo discreto "casual — não vale ranking" |
+| R3.4 | Página curta de privacidade no menu; run offline não ranqueia (sem fila — incompatível com token de sessão) |
+
+### Decisões em aberto (dono do produto)
+1. **3 boards por dificuldade** (recomendado; a crítica alertou: Iniciante teria os MAIORES scores — mitigar destacando Fluente como board principal na UI) vs board único com multiplicador ×1/×1.25/×1.5.
+2. Web (teclado físico) e celular (touch) no MESMO board? v1: sim, registrando `platform` desde o dia 1 para poder separar depois.
+3. Anti-cheat é MITIGAÇÃO, não garantia (código aberto no navegador): projetar para limpeza (remoção manual, são só 30 linhas visíveis) e opcionalmente Cloudflare Turnstile no submit (atrito zero: o jogador já parou para digitar o apelido).
 
 ## 4. Riscos técnicos e mitigações
 

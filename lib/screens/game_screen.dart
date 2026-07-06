@@ -605,8 +605,20 @@ class _KeyCapState extends State<_KeyCap> {
   }
 }
 
+Widget _cardChip(String text, Color fg, Color bg) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: bg,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: fg),
+    ),
+    child: Text(text, style: TextStyle(color: fg, fontSize: 11)),
+  );
+}
+
 /// Cartão de dicionário (segure a palavra para ler; solte para continuar):
-/// palavra, pronúncia, tradução, tópico e frase de exemplo com tradução.
+/// palavra, pronúncia, tradução, tópico, maestria e frase de exemplo.
 class _InspectOverlay extends StatelessWidget {
   final WordBlasterGame game;
 
@@ -657,22 +669,25 @@ class _InspectOverlay extends StatelessWidget {
                       color: Color(0xFF00E5FF), size: 22),
                 ],
               ),
-              if (topic != null)
-                Container(
-                  margin: const EdgeInsets.only(top: 6),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0E2A33),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF00E5FF)),
-                  ),
-                  child: Text(
-                    topic,
-                    style: const TextStyle(
-                        color: Color(0xFF00E5FF), fontSize: 11),
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Wrap(
+                  spacing: 6,
+                  children: [
+                    if (topic != null)
+                      _cardChip(topic, const Color(0xFF00E5FF),
+                          const Color(0xFF0E2A33)),
+                    switch (ProgressService.statFor(word.en).mastery) {
+                      Mastery.dominada => _cardChip('★ DOMINADA',
+                          const Color(0xFFFFC93C), const Color(0xFF33290E)),
+                      Mastery.aprendendo => _cardChip('APRENDENDO',
+                          const Color(0xFF7CE87C), const Color(0xFF12331A)),
+                      Mastery.nova => _cardChip('NOVA',
+                          const Color(0xFF8A93B2), const Color(0xFF141A2E)),
+                    },
+                  ],
                 ),
+              ),
               const SizedBox(height: 10),
               Text(
                 word.pt,

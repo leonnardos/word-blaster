@@ -73,6 +73,8 @@ class WordEnemy extends PositionComponent {
       fontWeight: FontWeight.w600,
       letterSpacing: 1.2,
     );
+    // Maestria (PLANO §1.4): dominada perde a tradução e ganha uma ★.
+    final mastery = ProgressService.statFor(word).mastery;
     _enPainter = TextPainter(
       text: TextSpan(
         children: [
@@ -84,21 +86,31 @@ class WordEnemy extends PositionComponent {
             text: word.substring(_typed),
             style: baseStyle.copyWith(color: const Color(0xFFF5F7FA)),
           ),
+          if (mastery == Mastery.dominada)
+            TextSpan(
+              text: ' ★',
+              style: baseStyle.copyWith(
+                  color: const Color(0xFFFFC93C), fontSize: 14),
+            ),
         ],
       ),
       textDirection: TextDirection.ltr,
     )..layout();
 
-    // Modo recall ativo: sem tradução, a caixinha colapsa e a palavra fica
-    // centralizada — e ainda dá para espiar segurando (cartão de dicionário).
-    _showPt = ProgressService.showTranslation;
+    // Andaime da tradução: visível (nova) → esmaecida (aprendendo) → some
+    // (dominada, ou toggle manual desligado). A caixinha colapsa e centraliza
+    // — e ainda dá para espiar segurando (cartão de dicionário).
+    _showPt =
+        ProgressService.showTranslation && mastery != Mastery.dominada;
     _ptPainter = TextPainter(
       text: TextSpan(
         text: _showPt ? wordData.pt : '',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontStyle: FontStyle.italic,
-          color: Color(0xFF8A93B2),
+          color: mastery == Mastery.aprendendo
+              ? const Color(0x668A93B2) // esmaecida: quase lá!
+              : const Color(0xFF8A93B2),
         ),
       ),
       textDirection: TextDirection.ltr,

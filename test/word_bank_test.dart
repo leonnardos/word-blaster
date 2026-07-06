@@ -36,6 +36,19 @@ void main() {
     expect(stat.spawnWeight, lessThan(base));
   });
 
+  test('maestria: nova (0-2), aprendendo (3-5), dominada (6+), erros regridem',
+      () {
+    expect(WordStat(hits: 0).mastery, Mastery.nova);
+    expect(WordStat(hits: 2).mastery, Mastery.nova);
+    expect(WordStat(hits: 3).mastery, Mastery.aprendendo);
+    expect(WordStat(hits: 5).mastery, Mastery.aprendendo);
+    expect(WordStat(hits: 6).mastery, Mastery.dominada);
+    expect(WordStat(hits: 40).mastery, Mastery.dominada);
+    // Errar derruba a maestria: 7 acertos - 3 erros = 4 (aprendendo).
+    expect(WordStat(hits: 7, misses: 3).mastery, Mastery.aprendendo);
+    expect(WordStat(hits: 2, misses: 9).masteryScore, 0);
+  });
+
   group('candidateWords', () {
     test('nível 1 sem tópicos: só palavras curtas, sem frases', () {
       final pool = candidateWords(level: 1);

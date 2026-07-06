@@ -89,24 +89,35 @@ class _MenuScreenState extends State<MenuScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
-              const Text(
-                'WORD',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 48,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 12,
-                  height: 0.9,
+              const FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'WORD',
+                  maxLines: 1,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 12,
+                    height: 0.9,
+                  ),
                 ),
               ),
-              const Text(
-                'BLASTER',
-                style: TextStyle(
-                  color: Color(0xFF00E5FF),
-                  fontSize: 48,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 12,
-                  height: 1.1,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: const Text(
+                    'BLASTER',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Color(0xFF00E5FF),
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 12,
+                      height: 1.1,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 10),
@@ -119,13 +130,20 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               const Spacer(),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _stat('RECORDE', '${ProgressService.bestScore}'),
-                  _stat('XP TOTAL', '${ProgressService.totalXp}'),
-                  _stat('PALAVRAS', '${ProgressService.totalWordsDestroyed}'),
-                ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _stat('RECORDE', '${ProgressService.bestScore}'),
+                      _stat('XP TOTAL', '${ProgressService.totalXp}'),
+                      _stat('PALAVRAS',
+                          '${ProgressService.totalWordsDestroyed}'),
+                    ],
+                  ),
+                ),
               ),
               const Spacer(),
               const Text(

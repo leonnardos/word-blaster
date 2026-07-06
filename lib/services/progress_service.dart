@@ -5,6 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../data/word_bank.dart';
 import '../game/screen_size.dart';
 
+/// Maestria de uma palavra: o andaime da tradução desaparece conforme o
+/// jogador domina (PLANO §1.4).
+enum Mastery {
+  nova, // 0-2 acertos líquidos: tradução visível
+  aprendendo, // 3-5: tradução esmaecida
+  dominada; // 6+: sem tradução e +50% de XP
+}
+
 /// Estatísticas de uma palavra, usadas na repetição espaçada simplificada
 /// (PRD §8): palavras erradas ganham peso e reaparecem mais.
 class WordStat {
@@ -16,6 +24,15 @@ class WordStat {
   /// Peso de sorteio: erros aumentam bastante, acertos reduzem aos poucos.
   double get spawnWeight =>
       (1.0 + misses * 2.0 - hits * 0.15).clamp(0.2, 8.0);
+
+  /// Acertos líquidos: errar a palavra faz a maestria regredir.
+  int get masteryScore => hits - misses < 0 ? 0 : hits - misses;
+
+  Mastery get mastery => masteryScore >= 6
+      ? Mastery.dominada
+      : masteryScore >= 3
+          ? Mastery.aprendendo
+          : Mastery.nova;
 
   Map<String, dynamic> toJson() => {'h': hits, 'm': misses};
 

@@ -82,6 +82,12 @@ class WordBlasterGame extends FlameGame {
 
   int _level = 1;
   int _wordsThisLevel = 0;
+
+  /// Ondas: as palavras vêm em levas de 8-10; limpar a leva dá uma pausa de
+  /// 2s (respiro) antes do banner "ONDA N" e da próxima.
+  int _wave = 0;
+  int _waveRemaining = 0;
+  double _waveRest = -1; // -1 = não está descansando
   int runXp = 0;
   int runWords = 0;
   int _correctChars = 0;
@@ -179,6 +185,16 @@ class WordBlasterGame extends FlameGame {
     _tank = PlayerTank()..position = _tankHome;
     add(_tank);
     _startLevel(difficulty.startLevel, announce: true);
+    _startWave(1);
+  }
+
+  void _startWave(int number) {
+    _wave = number;
+    _waveRemaining = 8 + number % 3; // 8-10 palavras por onda
+    _waveRest = -1;
+    // A primeira palavra da onda não pode demorar: adianta o relógio.
+    _spawnClock = 999;
+    if (number > 1) _showBanner('ONDA $number');
   }
 
   Vector2 get _tankHome => Vector2(size.x / 2, size.y - 106);
@@ -311,21 +327,31 @@ class WordBlasterGame extends FlameGame {
       _tank.aimStraightUp();
     }
 
-    _spawnClock += dtc;
-    final interval = max(1.15, 2.7 - _paceLevel * 0.13);
-    if (_spawnClock >= interval && _enemies.length < _maxEnemies) {
-      _spawnClock = 0;
-      _spawnEnemy();
+    // Ondas: spawna enquanto a leva tem palavras; leva vazia + tela limpa =
+    // pausa de 2s de respiro e vem a próxima onda.
+    if (_waveRemaining > 0) {
+      _spawnClock += dtc;
+      final interval = max(1.15, 2.7 - _paceLevel * 0.13);
+      if (_spawnClock >= interval && _enemies.length < _maxEnemies) {
+        _spawnClock = 0;
+        if (_spawnEnemy()) _waveRemaining--;
+      }
+    } else if (_enemies.isEmpty) {
+      if (_waveRest < 0) _waveRest = 2.0; // acabou de limpar a onda
+      _waveRest -= dtc;
+      if (_waveRest <= 0) _startWave(_wave + 1);
     }
   }
 
-  void _spawnEnemy() {
+  /// Spawna um inimigo; false se não conseguiu (sem palavra/sem espaço) —
+  /// nesse caso a onda não desconta e tenta no próximo tick.
+  bool _spawnEnemy() {
     final word = _pickWord();
-    if (word == null) return;
+    if (word == null) return false;
 
     final estWidth = max(word.en.length, word.pt.length) * 13.0 + 28;
     final x = _pickSpawnX(estWidth);
-    if (x == null) return; // sem espaço livre agora; tenta no próximo tick
+    if (x == null) return false; // sem espaço livre agora
     final speed = min(16 + _paceLevel * 3.5, 70.0) *
         difficulty.speedFactor *
         (0.85 + _random.nextDouble() * 0.35);
@@ -340,6 +366,7 @@ class WordBlasterGame extends FlameGame {
     )..bottomLimit = size.y - 160;
     _enemies.add(enemy);
     add(enemy);
+    return true;
   }
 
   /// Escolhe um X que não sobreponha inimigos ainda perto do topo, para as
@@ -467,9 +494,13 @@ class WordBlasterGame extends FlameGame {
     };
 
     // XP por dificuldade (PRD §9): curta +5 … frase +30.
-    final xp = enemy.word.contains(' ')
+    var xp = enemy.word.contains(' ')
         ? 30
         : (5 + (enemy.word.length - 3) * 2).clamp(5, 20);
+    // Palavra dominada (digitada sem o andaime da tradução) vale +50%.
+    if (ProgressService.statFor(enemy.word).mastery == Mastery.dominada) {
+      xp = (xp * 1.5).round();
+    }
     runXp += xp;
     score.value += xp * multiplier.value * 10;
 
@@ -558,5 +589,6 @@ class WordBlasterGame extends FlameGame {
     _isGameOver = false;
     _tank.aimStraightUp();
     _startLevel(difficulty.startLevel, announce: true);
+    _startWave(1);
   }
 }

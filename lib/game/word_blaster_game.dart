@@ -29,7 +29,12 @@ class WordBlasterGame extends FlameGame {
 
   final Difficulty difficulty;
 
-  WordBlasterGame({this.difficulty = Difficulty.beginner})
+  /// Zoom da câmera: 1.0 no desktop; menor no celular ("zoom out"), onde o
+  /// teclado embutido rouba metade da tela — o mundo lógico fica maior e o
+  /// caminho até o tanque rende mais tempo de digitação.
+  final double zoom;
+
+  WordBlasterGame({this.difficulty = Difficulty.beginner, this.zoom = 1.0})
       : levelLabel = ValueNotifier<String>('Nível ${difficulty.startLevel}');
 
   final _random = Random();
@@ -179,8 +184,11 @@ class WordBlasterGame extends FlameGame {
   Vector2 get _tankHome => Vector2(size.x / 2, size.y - 106);
 
   @override
-  void onGameResize(Vector2 size) {
-    super.onGameResize(size);
+  // ignore: avoid_renaming_method_parameters
+  void onGameResize(Vector2 canvasSize) {
+    // O tamanho LÓGICO é o canvas dividido pelo zoom: com zoom 0.75 o campo
+    // fica 33% maior e é desenhado menor (veja renderTree).
+    super.onGameResize(canvasSize / zoom);
     if (isLoaded) {
       _tank.position = _tankHome;
       for (final enemy in _enemies) {
@@ -242,16 +250,21 @@ class WordBlasterGame extends FlameGame {
 
   @override
   void renderTree(Canvas canvas) {
-    if (_shakeTime <= 0) {
+    final shaking = _shakeTime > 0;
+    final scaled = zoom != 1.0;
+    if (!shaking && !scaled) {
       super.renderTree(canvas);
       return;
     }
-    final strength = 2.2 * (_shakeTime / _shakeDuration); // sutil de propósito
     canvas.save();
-    canvas.translate(
-      (_random.nextDouble() * 2 - 1) * strength,
-      (_random.nextDouble() * 2 - 1) * strength,
-    );
+    if (scaled) canvas.scale(zoom);
+    if (shaking) {
+      final strength = 2.2 * (_shakeTime / _shakeDuration); // sutil
+      canvas.translate(
+        (_random.nextDouble() * 2 - 1) * strength,
+        (_random.nextDouble() * 2 - 1) * strength,
+      );
+    }
     super.renderTree(canvas);
     canvas.restore();
   }

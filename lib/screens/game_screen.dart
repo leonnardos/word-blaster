@@ -44,7 +44,12 @@ class _GameScreenState extends State<GameScreen> {
   @override
   void initState() {
     super.initState();
-    _game = WordBlasterGame(difficulty: widget.difficulty);
+    _game = WordBlasterGame(
+      difficulty: widget.difficulty,
+      // Zoom out no celular: o teclado embutido rouba metade da tela, então
+      // o campo lógico fica maior para dar mais tempo de digitação.
+      zoom: _isMobileDevice ? 0.75 : 1.0,
+    );
     HardwareKeyboard.instance.addHandler(_onHardwareKey);
     // O GameWidget também pede autofocus e costuma vencer a disputa; sem este
     // pedido pós-frame o campo nunca foca e a digitação morre na 1ª partida.
@@ -407,8 +412,11 @@ class _GameScreenState extends State<GameScreen> {
       // Segurar numa palavra abre o cartão de dicionário (jogo congela);
       // soltar em qualquer lugar fecha e o jogo continua.
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (event) => _game
-          .tryInspectAt(Vector2(event.localPosition.dx, event.localPosition.dy)),
+      // Divide pelo zoom: o toque chega em pixels de tela, o jogo pensa em
+      // coordenadas lógicas (maiores no celular).
+      onPointerDown: (event) => _game.tryInspectAt(
+        Vector2(event.localPosition.dx, event.localPosition.dy) / _game.zoom,
+      ),
       onPointerUp: (_) => _game.endInspect(),
       onPointerCancel: (_) => _game.endInspect(),
       child: GestureDetector(

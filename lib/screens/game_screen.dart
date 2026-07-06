@@ -251,43 +251,46 @@ class _GameScreenState extends State<GameScreen> {
     );
   }
 
+  /// Mostra SEMPRE a velocidade atual: azul = automática (acompanha o
+  /// nível, sobe sozinha), vermelho = travada pelo jogador.
   Widget _speedButton() {
-    final fixedLevel = ProgressService.speedLevel;
-    final active = fixedLevel != 0 || _speedMenuOpen;
-    return Tooltip(
-      message: 'Velocidade',
-      child: GestureDetector(
-        onTap: () => setState(() => _speedMenuOpen = !_speedMenuOpen),
-        child: Container(
-          width: 30,
-          height: 30,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: const Color(0xB010162A),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color:
-                  active ? const Color(0xFF00E5FF) : const Color(0xFF2A3350),
+    return ValueListenableBuilder<String>(
+      // levelLabel muda exatamente quando o nível muda — atualiza o número.
+      valueListenable: _game.levelLabel,
+      builder: (_, __, ___) {
+        final locked = ProgressService.speedLevel != 0;
+        final shown = locked
+            ? ProgressService.speedLevel
+            : min(_game.level, WordBlasterGame.speedCapLevel);
+        final color =
+            locked ? const Color(0xFFFF4444) : const Color(0xFF00E5FF);
+        return Tooltip(
+          message: locked
+              ? 'Velocidade TRAVADA em $shown — toque e escolha A para voltar'
+              : 'Velocidade automática: $shown (sobe com o nível)',
+          child: GestureDetector(
+            onTap: () => setState(() => _speedMenuOpen = !_speedMenuOpen),
+            child: Container(
+              width: 30,
+              height: 30,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xB010162A),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color),
+              ),
+              child: Text(
+                '$shown',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
-          child: fixedLevel != 0
-              ? Text(
-                  '$fixedLevel',
-                  style: const TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                )
-              : Icon(
-                  Icons.speed,
-                  size: 16,
-                  color: active
-                      ? const Color(0xFF00E5FF)
-                      : const Color(0xFF8A93B2),
-                ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -337,32 +340,38 @@ class _GameScreenState extends State<GameScreen> {
 
   Widget _speedOption(int value) {
     final selected = ProgressService.speedLevel == value;
+    // Travar (1-8) é vermelho; automático (A) é azul.
+    final accent =
+        value == 0 ? const Color(0xFF00E5FF) : const Color(0xFFFF4444);
     return Tooltip(
-      message: value == 0 ? 'Automática (acelera com o nível)' : 'Nível $value',
+      message: value == 0
+          ? 'Automática (acelera com o nível)'
+          : 'Travar na velocidade $value',
       child: GestureDetector(
         onTap: () {
           ProgressService.saveSpeedLevel(value);
           setState(() => _speedMenuOpen = false);
-          _focusNode.requestFocus(); // digitação não pode morrer após o clique
+          if (!_isMobileDevice) _focusNode.requestFocus();
         },
         child: Container(
           width: 28,
           height: 28,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFF0E2A33) : const Color(0xFF141A2E),
+            color: selected
+                ? (value == 0
+                    ? const Color(0xFF0E2A33)
+                    : const Color(0xFF331416))
+                : const Color(0xFF141A2E),
             borderRadius: BorderRadius.circular(7),
             border: Border.all(
-              color:
-                  selected ? const Color(0xFF00E5FF) : const Color(0xFF2A3350),
+              color: selected ? accent : const Color(0xFF2A3350),
             ),
           ),
           child: Text(
             value == 0 ? 'A' : '$value',
             style: TextStyle(
-              color: selected
-                  ? const Color(0xFF00E5FF)
-                  : const Color(0xFF8A93B2),
+              color: selected ? accent : const Color(0xFF8A93B2),
               fontSize: 12,
               fontWeight: FontWeight.bold,
             ),

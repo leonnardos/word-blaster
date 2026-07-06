@@ -104,6 +104,12 @@ class WordBlasterGame extends FlameGame {
 
   bool get isPaused => _isPaused;
 
+  /// Nível atual das palavras (no modo automático, a velocidade é ele).
+  int get level => _level;
+
+  /// A velocidade satura neste nível: min(16 + N*3.5, 70) trava em N≈15.
+  static const speedCapLevel = 15;
+
   /// Preenchimento da barra de estamina (0..1) para uma sequência de
   /// [words] palavras corretas: 5 palavras = 25%, 15 = 50%, 25 = 75%,
   /// 35 = 100% — cada quarto da barra é um marco de multiplicador.

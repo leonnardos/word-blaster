@@ -26,6 +26,11 @@ if (!_wbGl) {
 }
 
 _flutter.loader.load({
+  // Service worker: cacheia o jogo (funciona offline depois da 1ª visita)
+  // e é o que permite INSTALAR como app pela engrenagem do Chrome (PWA).
+  serviceWorkerSettings: {
+    serviceWorkerVersion: {{flutter_service_worker_version}},
+  },
   config: {
     canvasKitForceCpuOnly: !_wbGl,
   },

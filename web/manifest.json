@@ -1,12 +1,14 @@
 {
-    "name": "word_blaster",
-    "short_name": "word_blaster",
+    "name": "Word Blaster — aprenda inglês jogando",
+    "short_name": "Word Blaster",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#070B14",
+    "theme_color": "#070B14",
+    "description": "Digite, destrua e aprenda inglês. Jogo arcade de digitação com tradução em português.",
     "orientation": "portrait-primary",
+    "lang": "pt-BR",
+    "categories": ["games", "education"],
     "prefer_related_applications": false,
     "icons": [
         {

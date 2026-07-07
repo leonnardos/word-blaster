@@ -16,7 +16,7 @@
 | **Mira travada**: a 1ª letra digitada trava no inimigo mais próximo; você não troca de alvo até terminar a palavra | Elimina ambiguidade e cria foco total; zero decisão além de digitar | ✅ implementado |
 | **Um tiro por letra** com projétil teleguiado | Cada tecla dá feedback físico imediato — a digitação "vira" a arma | ✅ implementado |
 | **Nunca há duas palavras com a mesma inicial na tela** | Garante que a mira travada nunca frustra | ✅ implementado |
-| **Ondas (waves)** com pausa breve e contador | Ritmo de respiração: tensão → alívio → tensão maior | 🔜 pendente |
+| **Ondas (waves)** com pausa breve e contador | Ritmo de respiração: tensão → alívio → tensão maior | ✅ implementado (8-10 palavras/onda, 2s de respiro, banner "ONDA N") |
 | **Inimigos especiais**: atiradores (o projétil também é palavra), divisores (quebram em palavras menores), boss de palavra longa | Variedade sem mudar a mecânica base | 🔜 Fase 3 |
 | **EMP (bomba)** carregada por digitação perfeita | Recompensa precisão com poder, não só pontos | 🔜 Fase 3 |
 | **Estética**: vetores neon, partículas, screen shake, som por tecla | "Game feel" — o jogo parece responder ao seu dedo | ✅ (explosões de fogo, shake no estouro, sons de erro/vida, muzzle flash, música) |
@@ -29,7 +29,7 @@
 | **Streak (ofensiva) diária** + streak freeze | Aversão à perda — o motor nº 1 de retenção deles | 🔜 Fase 2 |
 | **Sessões de 1–3 min** | Cabe em qualquer brecha do dia; sem custo de começar | ✅ partidas curtas por design |
 | **Repetição espaçada** (palavras fracas voltam) | Curva do esquecimento de Ebbinghaus | ✅ versão simples; FSFR completo na Fase 2 |
-| **Nova palavra chega com tradução, depois é testada sem ela** | Andaime (scaffolding): apoio que desaparece com a maestria | ⚠️ parcial: toggle manual de tradução ✅ + cartão segure-para-ler ✅; fade AUTOMÁTICO por maestria pendente |
+| **Nova palavra chega com tradução, depois é testada sem ela** | Andaime (scaffolding): apoio que desaparece com a maestria | ✅ completo: nova = tradução visível → aprendendo = esmaecida → dominada = RECALL INVERTIDO (inglês oculto, tradução como dica) + modo estudo 👁 + cartão de dicionário por toque |
 | **Metas diárias + notificação** | Gatilho externo de hábito | 🔜 Fase 2 |
 | **Ligas semanais** | Competição com prazos curtos renova a motivação toda segunda | 🔜 Fase 4 |
 | **Celebração exagerada de acertos** | Recompensa variável, dopamina | ✅ explosões de fogo + pronúncia + barra de estamina com marcos ×2..×5 |
@@ -49,33 +49,48 @@
 
 ---
 
-## 2. Estado atual (atualizado em 2026-07-07 — jogo completo, no ar)
+## 2. Estado atual (atualizado em 2026-07-08, v0.10.2 — jogo completo, no ar)
 
 **Publicado**: web em wordblaster.vercel.app (deploy automático por push no
-GitHub leonnardos/word-blaster) + APK Android compilando.
+GitHub leonnardos/word-blaster; selo de versão no menu — incrementar a cada
+deploy) + APK Android compilando + **PWA instalável** (Android "Instalar app"
+/ iPhone "Adicionar à Tela de Início"; ícones do tanque; funciona offline
+após a 1ª visita via service worker).
 
-- **Conteúdo**: 1003 palavras em 23 tópicos com tradução PT-BR + 1001 frases
-  de exemplo (EN+PT); sorteio aleatório entre tópicos com dificuldade por
-  tamanho; seleção de tópicos pelo jogador; pool nunca degenera (mín. 8)
+- **Conteúdo**: 1003 palavras em 23 tópicos com tradução PT-BR + **3.003
+  frases de exemplo em 3 tempos** (presente/passado/futuro, EN+PT, geradas
+  por 23 agentes com revisão); sorteio JUSTO: peso pedagógico limitado
+  (0.5–3.0, erros pesam mais sem monopolizar) + cobertura por exposição
+  (cada aparição na partida derruba o peso — o pool inteiro circula);
+  maestria por palavra (nova → aprendendo esmaecida → dominada = recall
+  invertido com ★) + modo estudo 👁; ondas de 8-10 palavras com respiro
 - **Combate**: veículo blindado com rodas animadas e canhão duplo giratório,
   mísseis com rastro de fogo, muzzle flash, explosões de fogo, tremida no
   estouro, clareada no impacto, palavras convergem para o tanque
-- **Aprendizado**: TTS com fila (voz feminina en-US) na destruição, cartão de
-  dicionário segurando a palavra (pausa o jogo), botão de ocultar tradução,
-  letra errada em vermelho animada no lugar do combo + buzz de erro,
-  repetição ponderada por erro/acerto persistida
+- **Aprendizado**: TTS com fila (qualquer voz en; corrigido locale en_US
+  com underscore do Chrome Android — tocar no selo de versão mostra a voz
+  escolhida), **cartão de dicionário por TOQUE**: palavra em azul, tradução,
+  3 frases nos 3 tempos com ▶ de pronúncia cada e tradução escondida atrás
+  do olhinho (pensa antes de espiar); fecha tocando fora ou digitando;
+  botão de ocultar tradução; letra errada em vermelho animada no centro
 - **Progressão**: 3 dificuldades (Iniciante/Intermediário/Fluente), estamina
   com marcos ×2..×5 (5/15/25/35 palavras), +1 vida por nível, velocidade
-  automática ou travada (1-8), "revise estas palavras" com 🔊 no fim de jogo
-- **Plataformas**: teclado embutido no celular (células cheias + feedback),
-  zoom out mobile (+33% de campo), moldura média/mobile no desktop com
-  laterais reservadas para anúncios, pause (botão/ESC), botões de música,
-  mudo e volumes (música/fala)
-- **Estética**: campo de batalha procedural rolando (tanque avançando),
-  menu com arte de guerra + trilha sonora de tambores em loop
+  automática ou travada (1-8, indicador azul=auto/vermelho=travada),
+  "revise estas palavras" com 🔊 no fim de jogo
+- **Plataformas**: teclado embutido no celular (minúsculas como as palavras,
+  células cheias + feedback), zoom out mobile (+33% de campo), moldura
+  média/mobile no desktop com laterais reservadas para anúncios, pause
+  (botão/ESC), botões de música, mudo e volumes (música/pronúncia);
+  fallback de CPU + aviso para navegador sem WebGL (ex.: Comet)
+- **Estética**: Orbitron nos títulos + Exo 2 legível nas palavras/teclado;
+  HUD discreto no canto (placar/combo translúcidos, centro livre); campo de
+  batalha procedural rolando; menu com arte de guerra; trilha sintetizada
+  com corpo nos médios (audível em alto-falante de celular) que toca SÓ
+  durante o jogo ativo (menu/pause/cartão/game over em silêncio)
 - **Monetização preparada**: AdMob com IDs de teste (banner só no menu) +
   slots AdSense no index.html (ativar após aprovação)
-- **Qualidade**: 15 testes automatizados; analyze limpo
+- **Qualidade**: 22 testes automatizados (inclui validação dos 3.003
+  exemplos); analyze limpo
 
 ---
 
@@ -213,9 +228,9 @@ pré-requisito do ranking.
 ### Fase R0 — Ajustes de velocidade (sem backend, ~1h)
 | # | Tarefa |
 |---|---|
-| R0.1 | Botão de velocidade em AUTO mostra **"A" em ciano** (hoje parece desativado) |
-| R0.2 | Painel aberto em AUTO mostra o nível efetivo atual ("AUTO · nível 12") — em auto, velocidade = nível das palavras |
-| R0.3 | Trocar velocidade vale NA HORA para as palavras já na tela (hoje `WordEnemy.speed` é final: só as próximas mudam; retunar os inimigos ativos preservando a variância aleatória de cada um) |
+| R0.1 | ✅ feito (variante melhor): botão mostra SEMPRE o número da velocidade — AZUL = automática, VERMELHO = travada |
+| R0.2 | ✅ feito: em auto o número acompanha o nível (autoSpeedFor, teto 8) |
+| R0.3 | 🔜 Trocar velocidade vale NA HORA para as palavras já na tela (hoje `WordEnemy.speed` é final: só as próximas mudam; retunar os inimigos ativos preservando a variância aleatória de cada um) |
 
 ### Fase R1 — Fechar o jogo para competição (~1 dia)
 | # | Tarefa |
@@ -251,7 +266,7 @@ pré-requisito do ranking.
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| **Teclado mobile** (autocorreção, IME, latência, teclado cobrindo 40% da tela) | Alto — é o coração do jogo | Testar em Android real na Fase 1 (tarefa 1.7); campo já usa `visiblePassword` sem sugestões; layout já se adapta ao resize |
+| **Teclado mobile** (autocorreção, IME, latência, teclado cobrindo 40% da tela) | Alto — é o coração do jogo | ✅ RESOLVIDO: teclado QWERTY próprio embutido no jogo (o do sistema esmagava o layout); células inteiras clicáveis, minúsculas, feedback ciano; zoom out compensa a área perdida |
 | TTS com pronúncia ruim offline | Médio | `flutter_tts` usa a voz do sistema; fallback: áudios gravados dos 500 core words (~5 MB) |
 | Performance com muitas partículas em celular fraco | Médio | Cap de partículas por explosão; perfil de qualidade "leve" automático |
 | Notificação de build phase do Flame ↔ Flutter (`setState during build`) | Baixo | Já resolvido: notifiers nascem com valor inicial correto; futuras notificações só fora do build |

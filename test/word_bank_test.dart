@@ -36,6 +36,16 @@ void main() {
     expect(stat.spawnWeight, lessThan(base));
   });
 
+  test('peso de repetição é limitado: razão máxima 6× entre extremos', () {
+    // Sem teto apertado, meia dúzia de palavras erradas monopolizava o
+    // sorteio e as dominadas sumiam (razão antiga chegava a 40×).
+    final worst = WordStat(misses: 99).spawnWeight;
+    final best = WordStat(hits: 999).spawnWeight;
+    expect(worst / best, lessThanOrEqualTo(6.0));
+    expect(worst, lessThanOrEqualTo(3.0));
+    expect(best, greaterThanOrEqualTo(0.5));
+  });
+
   test('maestria: nova (0-2), aprendendo (3-5), dominada (6+), erros regridem',
       () {
     expect(WordStat(hits: 0).mastery, Mastery.nova);

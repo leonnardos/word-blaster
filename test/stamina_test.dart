@@ -19,6 +19,19 @@ void main() {
     }
   });
 
+  test('sorteio: exposição na partida derruba o peso (cobertura do pool)', () {
+    const w = 1.0;
+    expect(WordBlasterGame.pickWeight(w, 0), 1.0);
+    // Cada aparição corta o peso: nunca vista > vista 1x > vista 2x...
+    expect(WordBlasterGame.pickWeight(w, 1), lessThan(0.6));
+    expect(WordBlasterGame.pickWeight(w, 2),
+        lessThan(WordBlasterGame.pickWeight(w, 1)));
+    // Palavra ERRADA (peso máx 3.0) já vista 2x perde para uma nunca
+    // vista de peso mínimo (0.5): a cobertura vence a insistência.
+    expect(WordBlasterGame.pickWeight(3.0, 2),
+        lessThanOrEqualTo(WordBlasterGame.pickWeight(0.5, 0) * 2.4));
+  });
+
   test('velocidade automática: sobe 1 a cada 2 níveis, teto no 8', () {
     expect(WordBlasterGame.autoSpeedFor(1), 1);
     expect(WordBlasterGame.autoSpeedFor(2), 1);

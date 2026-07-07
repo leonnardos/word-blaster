@@ -21,9 +21,12 @@ class WordStat {
 
   WordStat({this.hits = 0, this.misses = 0});
 
-  /// Peso de sorteio: erros aumentam bastante, acertos reduzem aos poucos.
+  /// Peso de sorteio: erros aumentam, acertos reduzem aos poucos.
+  /// Faixa APERTADA (0.5–3.0, razão máx. 6×): a antiga (0.2–8.0 = 40×)
+  /// fazia meia dúzia de palavras erradas monopolizar o jogo enquanto
+  /// as dominadas quase nunca apareciam (queixa do usuário).
   double get spawnWeight =>
-      (1.0 + misses * 2.0 - hits * 0.15).clamp(0.2, 8.0);
+      (1.0 + misses * 1.0 - hits * 0.1).clamp(0.5, 3.0);
 
   /// Acertos líquidos: errar a palavra faz a maestria regredir.
   int get masteryScore => hits - misses < 0 ? 0 : hits - misses;

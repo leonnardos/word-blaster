@@ -64,6 +64,11 @@ class WordBlasterGame extends FlameGame {
   /// spawns para um tópico pequeno não virar loop da mesma palavra.
   final List<String> _recentWords = [];
 
+  /// Quantas vezes cada palavra já apareceu NESTA partida: o sorteio divide
+  /// o peso por isso, empurrando a vez para quem ainda não apareceu —
+  /// garante cobertura do pool em vez de repetir as mesmas favoritas.
+  final Map<String, int> _seenThisRun = {};
+
   // Estado da partida, exposto ao HUD Flutter.
   final score = ValueNotifier<int>(0);
   final streak = ValueNotifier<int>(0);
@@ -381,8 +386,15 @@ class WordBlasterGame extends FlameGame {
     )..bottomLimit = size.y - 160;
     _enemies.add(enemy);
     add(enemy);
+    _seenThisRun[word.en] = (_seenThisRun[word.en] ?? 0) + 1;
     return true;
   }
+
+  /// Peso efetivo no sorteio: o peso pedagógico (erros pesam mais) dividido
+  /// pela exposição na partida — cada aparição corta o peso quase pela
+  /// metade, então quem nunca apareceu sempre acaba tendo a vez.
+  static double pickWeight(double spawnWeight, int timesSeen) =>
+      spawnWeight / (1 + 0.8 * timesSeen);
 
   /// Escolhe um X que não sobreponha inimigos ainda perto do topo, para as
   /// palavras nunca aparecerem grudadas umas nas outras.
@@ -424,8 +436,10 @@ class WordBlasterGame extends FlameGame {
     }
     if (candidates.isEmpty) return null;
 
-    final weights =
-        candidates.map((w) => ProgressService.statFor(w.en).spawnWeight).toList();
+    final weights = candidates
+        .map((w) => pickWeight(ProgressService.statFor(w.en).spawnWeight,
+            _seenThisRun[w.en] ?? 0))
+        .toList();
     var roll = _random.nextDouble() * weights.reduce((a, b) => a + b);
     for (var i = 0; i < candidates.length; i++) {
       roll -= weights[i];
@@ -612,6 +626,7 @@ class WordBlasterGame extends FlameGame {
     _shotCooldown = 0;
     _watchTarget = null;
     _recentWords.clear();
+    _seenThisRun.clear();
     _isGameOver = false;
     isOverNotifier.value = false;
     _tank.aimStraightUp();

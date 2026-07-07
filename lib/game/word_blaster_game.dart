@@ -78,6 +78,10 @@ class WordBlasterGame extends FlameGame {
   /// Fim de jogo (o HUD/controles somem para o cartão ficar limpo).
   final isOverNotifier = ValueNotifier<bool>(false);
 
+  /// Cartão de dicionário aberto (a coluna lateral some — no celular ela
+  /// ficava POR CIMA do cartão).
+  final inspectingNotifier = ValueNotifier<bool>(false);
+
   /// Letra digitada errada, mostrada animada no lugar do combo por ~1s.
   /// O id incremental faz a animação reiniciar mesmo repetindo a letra.
   final wrongLetter = ValueNotifier<(int, String)>((0, ''));
@@ -161,6 +165,7 @@ class WordBlasterGame extends FlameGame {
       if (!enemy.isAlive) continue;
       if (enemy.toRect().inflate(8).contains(point.toOffset())) {
         _inspected = enemy;
+        inspectingNotifier.value = true;
         pauseEngine();
         overlays.add(overlayInspect);
         TtsService.speak(enemy.word); // pronúncia junto com a leitura
@@ -174,6 +179,7 @@ class WordBlasterGame extends FlameGame {
   void endInspect() {
     if (_inspected == null) return;
     _inspected = null;
+    inspectingNotifier.value = false;
     overlays.remove(overlayInspect);
     if (!_isPaused && !_isGameOver) resumeEngine();
   }

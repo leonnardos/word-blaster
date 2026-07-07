@@ -489,24 +489,30 @@ class _GameScreenState extends State<GameScreen> {
                     _InspectOverlay(game: game, onClose: _closeInspect),
               },
             ),
-            // HUD, controles e estamina somem no fim de jogo — o cartão de
-            // resultado fica limpo, sem sobreposição (bug visto no celular).
+            // HUD, controles e estamina somem no fim de jogo E com o cartão
+            // de dicionário aberto — os dois cartões ficam limpos, sem a
+            // coluna lateral por cima (bug visto no celular).
             Positioned.fill(
               child: ValueListenableBuilder<bool>(
                 valueListenable: _game.isOverNotifier,
                 builder: (_, over, __) => over
                     ? const SizedBox.shrink()
-                    : Stack(
-                        children: [
-                          _Hud(game: _game),
-                          _sideStrip(),
-                          Positioned(
-                            left: 16,
-                            right: 16,
-                            bottom: 8,
-                            child: _StaminaBar(game: _game),
-                          ),
-                        ],
+                    : ValueListenableBuilder<bool>(
+                        valueListenable: _game.inspectingNotifier,
+                        builder: (_, inspecting, __) => inspecting
+                            ? const SizedBox.shrink()
+                            : Stack(
+                                children: [
+                                  _Hud(game: _game),
+                                  _sideStrip(),
+                                  Positioned(
+                                    left: 16,
+                                    right: 16,
+                                    bottom: 8,
+                                    child: _StaminaBar(game: _game),
+                                  ),
+                                ],
+                              ),
                       ),
               ),
             ),

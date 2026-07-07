@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/word_bank.dart';
 import '../data/word_examples.dart';
 import '../game/difficulty.dart';
 import '../game/screen_size.dart';
@@ -102,6 +101,11 @@ class _GameScreenState extends State<GameScreen> {
 
   void _resumeFromPause() {
     _game.resumeGame();
+    if (!_isMobileDevice) _focusNode.requestFocus();
+  }
+
+  void _closeInspect() {
+    _game.endInspect();
     if (!_isMobileDevice) _focusNode.requestFocus();
   }
 
@@ -456,16 +460,12 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final gameArea = Listener(
-      // TOQUE numa palavra abre o cartão de dicionário e o jogo congela;
-      // o próximo toque em QUALQUER lugar fecha e o jogo continua.
-      // (Era segurar-para-ler; o usuário preferiu abre/fecha por toque.)
+      // TOQUE numa palavra abre o cartão de dicionário e o jogo congela.
+      // O fechamento é do próprio cartão (toque fora dele ou no rodapé) —
+      // os botões de play/olho dentro do cartão precisam funcionar.
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        if (_game.inspectedEnemy != null) {
-          _game.endInspect();
-          if (!_isMobileDevice) _focusNode.requestFocus();
-          return;
-        }
+        if (_game.inspectedEnemy != null) return;
         // Divide pelo zoom: o toque chega em pixels de tela, o jogo pensa
         // em coordenadas lógicas (maiores no celular).
         _game.tryInspectAt(
@@ -486,7 +486,7 @@ class _GameScreenState extends State<GameScreen> {
                 WordBlasterGame.overlayPaused: (context, WordBlasterGame game) =>
                     _PauseOverlay(onResume: _resumeFromPause),
                 WordBlasterGame.overlayInspect: (context, WordBlasterGame game) =>
-                    _InspectOverlay(game: game),
+                    _InspectOverlay(game: game, onClose: _closeInspect),
               },
             ),
             // HUD, controles e estamina somem no fim de jogo — o cartão de
@@ -675,138 +675,227 @@ class _KeyCapState extends State<_KeyCap> {
   }
 }
 
-Widget _cardChip(String text, Color fg, Color bg) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: bg,
-      borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: fg),
-    ),
-    child: Text(text, style: TextStyle(color: fg, fontSize: 11)),
-  );
-}
-
-/// Cartão de dicionário (segure a palavra para ler; solte para continuar):
-/// palavra, pronúncia, tradução, tópico, maestria e frase de exemplo.
-class _InspectOverlay extends StatelessWidget {
+/// Cartão de dicionário (toque na palavra para abrir): palavra em destaque,
+/// tradução, e a frase de exemplo em 3 TEMPOS (presente/passado/futuro) —
+/// cada uma com pronúncia (▶) e tradução escondida atrás do olhinho, para
+/// o jogador tentar entender ANTES de ler a resposta.
+/// Fecha tocando fora do cartão ou no rodapé.
+class _InspectOverlay extends StatefulWidget {
   final WordBlasterGame game;
+  final VoidCallback onClose;
 
-  const _InspectOverlay({required this.game});
+  const _InspectOverlay({required this.game, required this.onClose});
 
   @override
-  Widget build(BuildContext context) {
-    final enemy = game.inspectedEnemy;
-    if (enemy == null) return const SizedBox.shrink();
-    final word = enemy.wordData;
-    final example = wordExamples[word.en];
-    final topic = topicOfWord(word.en);
+  State<_InspectOverlay> createState() => _InspectOverlayState();
+}
 
-    return IgnorePointer(
-      // O cartão não captura toques: o soltar precisa chegar ao Listener.
-      child: Container(
-        color: const Color(0xD9070B14),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 28),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 420),
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: const Color(0xFF10162A),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFF00E5FF), width: 1.5),
-            boxShadow: const [
-              BoxShadow(color: Color(0x5500E5FF), blurRadius: 24),
-            ],
+class _InspectOverlayState extends State<_InspectOverlay> {
+  static const _tenseLabels = ['PRESENTE', 'PASSADO', 'FUTURO'];
+
+  /// Índices das frases cuja tradução o jogador já revelou (olhinho).
+  final Set<int> _revealed = {};
+
+  /// Converte a frase marcada ("She *ran* fast.") em spans com a
+  /// palavra-alvo em azul.
+  List<TextSpan> _highlight(String marked) {
+    final parts = marked.split('*');
+    return [
+      for (var i = 0; i < parts.length; i++)
+        if (parts[i].isNotEmpty)
+          TextSpan(
+            text: parts[i],
+            style: i.isOdd
+                ? const TextStyle(
+                    color: Color(0xFF00E5FF), fontWeight: FontWeight.w600)
+                : null,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      word.en,
-                      style: const TextStyle(
-                        fontFamily: 'Exo2',
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const Icon(Icons.volume_up,
-                      color: Color(0xFF00E5FF), size: 22),
-                ],
+    ];
+  }
+
+  Widget _exampleRow(int i, (String, String) ex) {
+    final revealed = _revealed.contains(i);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _tenseLabels[i],
+          style: const TextStyle(
+            color: Color(0xFF5A6284),
+            fontSize: 9,
+            letterSpacing: 2,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            GestureDetector(
+              // Play: pronuncia a frase inteira (sem os asteriscos).
+              onTap: () => TtsService.speak(ex.$1.replaceAll('*', '')),
+              child: const Padding(
+                padding: EdgeInsets.only(top: 1),
+                child: Icon(Icons.play_circle_fill,
+                    color: Color(0xFF00E5FF), size: 22),
               ),
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Wrap(
-                  spacing: 6,
-                  children: [
-                    if (topic != null)
-                      _cardChip(topic, const Color(0xFF00E5FF),
-                          const Color(0xFF0E2A33)),
-                    switch (ProgressService.statFor(word.en).mastery) {
-                      Mastery.dominada => _cardChip('★ DOMINADA',
-                          const Color(0xFFFFC93C), const Color(0xFF33290E)),
-                      Mastery.aprendendo => _cardChip('APRENDENDO',
-                          const Color(0xFF7CE87C), const Color(0xFF12331A)),
-                      Mastery.nova => _cardChip('NOVA',
-                          const Color(0xFF8A93B2), const Color(0xFF141A2E)),
-                    },
-                  ],
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                word.pt,
-                style: const TextStyle(
-                  fontFamily: 'Exo2',
-                  color: Color(0xFF00E5FF),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (example != null) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Divider(color: Color(0xFF2A3350), height: 1),
-                ),
-                Text(
-                  example.$1,
+            ),
+            const SizedBox(width: 9),
+            Expanded(
+              child: RichText(
+                text: TextSpan(
                   style: const TextStyle(
                     fontFamily: 'Exo2',
                     color: Color(0xFFE8ECF0),
-                    fontSize: 16,
+                    fontSize: 15,
                     fontStyle: FontStyle.italic,
                   ),
+                  children: _highlight(ex.$1),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  example.$2,
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 31, top: 3),
+          child: revealed
+              ? Text(
+                  ex.$2,
                   style: const TextStyle(
                       fontFamily: 'Exo2',
                       color: Color(0xFF8A93B2),
-                      fontSize: 14),
+                      fontSize: 13),
+                )
+              // Tradução escondida: pensa primeiro, espia se precisar.
+              : GestureDetector(
+                  onTap: () => setState(() => _revealed.add(i)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.visibility_outlined,
+                          color: Color(0xFF5A6284), size: 15),
+                      SizedBox(width: 5),
+                      Text(
+                        'ver tradução',
+                        style: TextStyle(
+                          color: Color(0xFF5A6284),
+                          fontSize: 11,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-              const SizedBox(height: 14),
-              const Center(
-                child: Text(
-                  'TOQUE PARA CONTINUAR',
-                  style: TextStyle(
-                    color: Color(0xFF5A6284),
-                    fontSize: 10,
-                    letterSpacing: 2,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final enemy = widget.game.inspectedEnemy;
+    if (enemy == null) return const SizedBox.shrink();
+    final word = enemy.wordData;
+    final examples = wordExamples[word.en];
+
+    return Stack(
+      children: [
+        // Toque FORA do cartão fecha e o jogo continua.
+        Positioned.fill(
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onClose,
+            child: Container(color: const Color(0xD9070B14)),
+          ),
+        ),
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: GestureDetector(
+              onTap: () {}, // absorve o toque: dentro do cartão não fecha
+              child: Container(
+                constraints: BoxConstraints(
+                  maxWidth: 420,
+                  maxHeight: MediaQuery.of(context).size.height * 0.85,
+                ),
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10162A),
+                  borderRadius: BorderRadius.circular(18),
+                  border:
+                      Border.all(color: const Color(0xFF00E5FF), width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x5500E5FF), blurRadius: 24),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            // A palavra escolhida, em azul de destaque.
+                            child: Text(
+                              word.en,
+                              style: const TextStyle(
+                                fontFamily: 'Exo2',
+                                color: Color(0xFF00E5FF),
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () => TtsService.speak(word.en),
+                            child: const Icon(Icons.volume_up,
+                                color: Color(0xFF00E5FF), size: 24),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        word.pt,
+                        style: const TextStyle(
+                          fontFamily: 'Exo2',
+                          color: Color(0xFFF5F7FA),
+                          fontSize: 19,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (examples != null) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          child: Divider(color: Color(0xFF2A3350), height: 1),
+                        ),
+                        for (var i = 0; i < examples.length; i++) ...[
+                          if (i > 0) const SizedBox(height: 12),
+                          _exampleRow(i, examples[i]),
+                        ],
+                      ],
+                      const SizedBox(height: 16),
+                      Center(
+                        child: GestureDetector(
+                          onTap: widget.onClose,
+                          child: const Text(
+                            'TOQUE PARA CONTINUAR',
+                            style: TextStyle(
+                              color: Color(0xFF5A6284),
+                              fontSize: 10,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 }

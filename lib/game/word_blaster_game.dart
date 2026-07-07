@@ -452,7 +452,13 @@ class WordBlasterGame extends FlameGame {
 
   /// Recebe cada caractere digitado (teclado do sistema ou físico).
   void onTyped(String raw) {
-    if (_isGameOver || _isPaused || _inspected != null || raw.isEmpty) return;
+    if (_isGameOver || _isPaused || raw.isEmpty) return;
+    // Cartão de dicionário aberto: qualquer tecla só FECHA o cartão (a
+    // letra não conta) — o jogador volta ao jogo sem tirar a mão do teclado.
+    if (_inspected != null) {
+      endInspect();
+      return;
+    }
     final char = raw.toLowerCase();
 
     var target = _target;

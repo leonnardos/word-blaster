@@ -143,7 +143,8 @@ class TtsService {
         final word = _queue.removeAt(0);
         final Future<dynamic> done = _tts.speak(word);
         // Se a plataforma nunca sinalizar o fim, a fila não pode travar.
-        await done.timeout(const Duration(seconds: 6), onTimeout: () {
+        // 12s: frases de exemplo inteiras (cartão) em rate 0.5 são longas.
+        await done.timeout(const Duration(seconds: 12), onTimeout: () {
           _tts.stop();
           return null;
         });

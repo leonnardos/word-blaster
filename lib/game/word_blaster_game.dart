@@ -96,7 +96,10 @@ class WordBlasterGame extends FlameGame {
   int _wordsThisLevel = 0;
 
   /// Ondas: as palavras vêm em levas de 8-10; limpar a leva dá uma pausa de
-  /// 2s (respiro) antes do banner "ONDA N" e da próxima.
+  /// 2s (respiro) antes do banner "ONDA N" e da próxima. A partir da onda
+  /// [nonstopWave] o respiro acaba: as levas emendam sem parar (pedido do
+  /// usuário — quem chegou lá não precisa mais de pausa).
+  static const nonstopWave = 50;
   int _wave = 0;
   int _waveRemaining = 0;
   double _waveRest = -1; // -1 = não está descansando
@@ -222,7 +225,9 @@ class WordBlasterGame extends FlameGame {
     _waveRemaining = 8 + number % 3; // 8-10 palavras por onda
     _waveRest = -1;
     // A primeira palavra da onda não pode demorar: adianta o relógio.
-    _spawnClock = 999;
+    // Exceto na emenda contínua (onda 50+), onde a cadência normal segue —
+    // adiantar causaria uma rajada a cada troca de onda.
+    if (number <= nonstopWave) _spawnClock = 999;
     if (number > 1) _showBanner('ONDA $number');
   }
 
@@ -358,7 +363,8 @@ class WordBlasterGame extends FlameGame {
     }
 
     // Ondas: spawna enquanto a leva tem palavras; leva vazia + tela limpa =
-    // pausa de 2s de respiro e vem a próxima onda.
+    // pausa de 2s de respiro e vem a próxima onda. Da onda 50 em diante,
+    // sem respiro nem espera: a leva seguinte emenda na anterior.
     if (_waveRemaining > 0) {
       _spawnClock += dtc;
       // Cadência calibrada para a escala 1-8: no 8, igual à antiga 10.
@@ -367,6 +373,8 @@ class WordBlasterGame extends FlameGame {
         _spawnClock = 0;
         if (_spawnEnemy()) _waveRemaining--;
       }
+    } else if (_wave >= nonstopWave) {
+      _startWave(_wave + 1);
     } else if (_enemies.isEmpty) {
       if (_waveRest < 0) _waveRest = 2.0; // acabou de limpar a onda
       _waveRest -= dtc;

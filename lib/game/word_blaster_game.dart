@@ -148,12 +148,12 @@ class WordBlasterGame extends FlameGame {
 
   // ------------------------------------------------------ inspeção de palavra
 
-  /// Palavra sendo "estudada": o jogador segurou o dedo/clique nela.
+  /// Palavra sendo "estudada": o jogador tocou nela (cartão aberto).
   WordEnemy? _inspected;
 
   WordEnemy? get inspectedEnemy => _inspected;
 
-  /// Segurar numa palavra: congela o jogo e abre o cartão de dicionário.
+  /// Tocar numa palavra: congela o jogo e abre o cartão de dicionário.
   /// Retorna true se havia uma palavra no ponto tocado.
   bool tryInspectAt(Vector2 point) {
     if (_isGameOver || _isPaused || _inspected != null) return false;
@@ -170,7 +170,7 @@ class WordBlasterGame extends FlameGame {
     return false;
   }
 
-  /// Soltar o dedo/clique: fecha o cartão e o jogo volta a descer.
+  /// Próximo toque (em qualquer lugar): fecha o cartão e o jogo continua.
   void endInspect() {
     if (_inspected == null) return;
     _inspected = null;

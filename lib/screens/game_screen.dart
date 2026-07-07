@@ -456,16 +456,23 @@ class _GameScreenState extends State<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final gameArea = Listener(
-      // Segurar numa palavra abre o cartão de dicionário (jogo congela);
-      // soltar em qualquer lugar fecha e o jogo continua.
+      // TOQUE numa palavra abre o cartão de dicionário e o jogo congela;
+      // o próximo toque em QUALQUER lugar fecha e o jogo continua.
+      // (Era segurar-para-ler; o usuário preferiu abre/fecha por toque.)
       behavior: HitTestBehavior.translucent,
-      // Divide pelo zoom: o toque chega em pixels de tela, o jogo pensa em
-      // coordenadas lógicas (maiores no celular).
-      onPointerDown: (event) => _game.tryInspectAt(
-        Vector2(event.localPosition.dx, event.localPosition.dy) / _game.zoom,
-      ),
-      onPointerUp: (_) => _game.endInspect(),
-      onPointerCancel: (_) => _game.endInspect(),
+      onPointerDown: (event) {
+        if (_game.inspectedEnemy != null) {
+          _game.endInspect();
+          if (!_isMobileDevice) _focusNode.requestFocus();
+          return;
+        }
+        // Divide pelo zoom: o toque chega em pixels de tela, o jogo pensa
+        // em coordenadas lógicas (maiores no celular).
+        _game.tryInspectAt(
+          Vector2(event.localPosition.dx, event.localPosition.dy) /
+              _game.zoom,
+        );
+      },
       child: GestureDetector(
         // Toque em qualquer lugar reabre o teclado (desktop/web).
         onTap: _isMobileDevice ? null : () => _focusNode.requestFocus(),
@@ -788,7 +795,7 @@ class _InspectOverlay extends StatelessWidget {
               const SizedBox(height: 14),
               const Center(
                 child: Text(
-                  'SOLTE PARA CONTINUAR',
+                  'TOQUE PARA CONTINUAR',
                   style: TextStyle(
                     color: Color(0xFF5A6284),
                     fontSize: 10,

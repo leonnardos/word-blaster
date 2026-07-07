@@ -177,6 +177,27 @@ após a 1ª visita via service worker).
   mantido); tópicos viram "pacotes" escolhíveis — e no futuro, tópico
   personalizado gerado sob demanda por LLM.
 
+#### 4.z Escada CEFR — decisões do dono (2026-07-08, ainda NÃO construir)
+
+Referência de tamanhos citada pelo dono (não é contrato): A1 800 · A2 1.200 ·
+B1 1.500 · B2 2.000 · C1 2.500. Decisões já tomadas:
+
+1. **Fase 1 = A1+A2**: etiquetar as 1.003 palavras atuais com nível CEFR e
+   completar até ~2.000 (A1+A2), COM as 3 frases de exemplo de cada uma.
+   B1-C1 ficam para depois de validar o sistema.
+2. **UI = seletor acumulativo "até X"**: botões A1…C1 no menu; escolher B1
+   treina A1+A2+B1 (vocabulário acumula). Convive com os tópicos e com a
+   dificuldade atual (Iniciante/Intermediário/Fluente segue controlando
+   ritmo/tamanho; CEFR controla QUAIS palavras existem no pool).
+3. **Modelo de dados**: `Word(en, pt, {cefr})` — etiqueta opcional; as
+   1.003 atuais são reaproveitadas (maestria dos jogadores preservada).
+
+Alertas anotados: cada palavra nova exige tradução + 3 frases (presente/
+passado/futuro) → A1+A2 ≈ +1.000 palavras/+3.000 frases; exemplos hoje
+pesam ~1 MB no download web — a partir de B1 considerar carregar exemplos
+sob demanda (ou pacotes por nível, ver §4.y). Fontes de lista por nível:
+CEFR-J (CC BY-SA) como referência de classificação.
+
 ### Fase 5 — Monetização e expansão (contínuo)
 
 | # | Tarefa | Detalhe |

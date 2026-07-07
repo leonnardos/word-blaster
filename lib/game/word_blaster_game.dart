@@ -410,11 +410,22 @@ class WordBlasterGame extends FlameGame {
     return true;
   }
 
-  /// Peso efetivo no sorteio: o peso pedagógico (erros pesam mais) dividido
-  /// pela exposição na partida — cada aparição corta o peso quase pela
-  /// metade, então quem nunca apareceu sempre acaba tendo a vez.
-  static double pickWeight(double spawnWeight, int timesSeen) =>
-      spawnWeight / (1 + 0.8 * timesSeen);
+  /// Janela de COBERTURA GARANTIDA: só concorrem ao sorteio as candidatas
+  /// menos vistas na partida (mínimo do pool +1). Suavizar o peso não
+  /// bastava — no longo prazo a frequência ainda era proporcional ao peso
+  /// (até 6×) e, numa partida grande, umas palavras acumulavam dezenas de
+  /// aparições enquanto outras nem surgiam (bug relatado na onda 77).
+  /// Com a janela, ninguém fica mais que ~2 aparições atrás de ninguém;
+  /// o peso pedagógico decide só DENTRO da janela.
+  static List<Word> coverageWindow(
+      List<Word> candidates, int Function(Word) seenOf) {
+    var minSeen = seenOf(candidates.first);
+    for (final w in candidates) {
+      final s = seenOf(w);
+      if (s < minSeen) minSeen = s;
+    }
+    return candidates.where((w) => seenOf(w) <= minSeen + 1).toList();
+  }
 
   /// Escolhe um X que não sobreponha inimigos ainda perto do topo, para as
   /// palavras nunca aparecerem grudadas umas nas outras.
@@ -456,16 +467,18 @@ class WordBlasterGame extends FlameGame {
     }
     if (candidates.isEmpty) return null;
 
-    final weights = candidates
-        .map((w) => pickWeight(ProgressService.statFor(w.en).spawnWeight,
-            _seenThisRun[w.en] ?? 0))
+    // Cobertura primeiro (janela das menos vistas), pedagogia depois
+    // (dentro da janela, erros pesam mais e dominadas pesam menos).
+    final window = coverageWindow(candidates, (w) => _seenThisRun[w.en] ?? 0);
+    final weights = window
+        .map((w) => ProgressService.statFor(w.en).spawnWeight)
         .toList();
     var roll = _random.nextDouble() * weights.reduce((a, b) => a + b);
-    for (var i = 0; i < candidates.length; i++) {
+    for (var i = 0; i < window.length; i++) {
       roll -= weights[i];
-      if (roll <= 0) return candidates[i];
+      if (roll <= 0) return window[i];
     }
-    return candidates.last;
+    return window.last;
   }
 
   // ---------------------------------------------------------------- digitação

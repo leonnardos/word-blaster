@@ -12,7 +12,7 @@ import 'menu_background.dart';
 
 /// Versão visível no canto do menu — para conferir se o celular está
 /// rodando o build novo ou um cache velho. Incrementar a cada deploy.
-const kBuildVersion = 'v0.10.3';
+const kBuildVersion = 'v0.10.4';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});

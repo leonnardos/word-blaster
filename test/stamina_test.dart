@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:word_blaster/data/word_bank.dart';
 import 'package:word_blaster/game/word_blaster_game.dart';
 
 void main() {
@@ -19,17 +20,21 @@ void main() {
     }
   });
 
-  test('sorteio: exposição na partida derruba o peso (cobertura do pool)', () {
-    const w = 1.0;
-    expect(WordBlasterGame.pickWeight(w, 0), 1.0);
-    // Cada aparição corta o peso: nunca vista > vista 1x > vista 2x...
-    expect(WordBlasterGame.pickWeight(w, 1), lessThan(0.6));
-    expect(WordBlasterGame.pickWeight(w, 2),
-        lessThan(WordBlasterGame.pickWeight(w, 1)));
-    // Palavra ERRADA (peso máx 3.0) já vista 2x perde para uma nunca
-    // vista de peso mínimo (0.5): a cobertura vence a insistência.
-    expect(WordBlasterGame.pickWeight(3.0, 2),
-        lessThanOrEqualTo(WordBlasterGame.pickWeight(0.5, 0) * 2.4));
+  test('sorteio: janela de cobertura — só as menos vistas concorrem', () {
+    const a = Word('alpha', 'a');
+    const b = Word('beta', 'b');
+    const c = Word('gamma', 'c');
+    final seen = {'alpha': 0, 'beta': 1, 'gamma': 7};
+    final window = WordBlasterGame.coverageWindow(
+        [a, b, c], (w) => seen[w.en] ?? 0);
+    // gamma (vista 7x) fica FORA até as outras alcançarem; alpha (0) e
+    // beta (1, dentro do mínimo+1) concorrem.
+    expect(window.map((w) => w.en), containsAll(['alpha', 'beta']));
+    expect(window.map((w) => w.en), isNot(contains('gamma')));
+
+    // Todas empatadas: todas concorrem (o peso pedagógico decide).
+    final tied = WordBlasterGame.coverageWindow([a, b, c], (_) => 3);
+    expect(tied.length, 3);
   });
 
   test('velocidade automática: sobe 1 a cada 2 níveis, teto no 8', () {

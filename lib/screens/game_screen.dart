@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 
 import '../data/word_examples.dart';
 import '../game/difficulty.dart';
+import '../services/ranking_service.dart';
 import '../game/screen_size.dart';
 import '../game/word_blaster_game.dart';
 import '../services/progress_service.dart';
@@ -1337,6 +1338,7 @@ class _GameOverOverlay extends StatelessWidget {
             _statRow('Palavras destruídas', '${game.runWords}'),
             _statRow('XP ganho', '+${game.runXp}'),
             _statRow('Precisão', '${(game.accuracy * 100).toStringAsFixed(0)}%'),
+            _RankingPanel(game: game),
             if (review.isNotEmpty) ...[
               const SizedBox(height: 16),
               const Text(
@@ -1408,6 +1410,231 @@ class _GameOverOverlay extends StatelessWidget {
                   color: Colors.white,
                   fontSize: 14,
                   fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Painel do ranking arcade no fim de jogo: consulta o top 10 online e,
+/// se a pontuação entrou, pede o apelido estilo fliperama. Só partidas
+/// em velocidade AUTOMÁTICA valem ranking (travar o ritmo é modo casual).
+/// Sem internet, o painel simplesmente some — o jogo nunca depende da rede.
+class _RankingPanel extends StatefulWidget {
+  final WordBlasterGame game;
+
+  const _RankingPanel({required this.game});
+
+  @override
+  State<_RankingPanel> createState() => _RankingPanelState();
+}
+
+class _RankingPanelState extends State<_RankingPanel> {
+  List<RankEntry>? _top;
+  bool _loading = true;
+  bool _sending = false;
+  bool _submitted = false;
+  String? _hint;
+  late final TextEditingController _nick =
+      TextEditingController(text: ProgressService.nickname);
+
+  bool get _ranked => ProgressService.speedLevel == 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_ranked) _load();
+  }
+
+  @override
+  void dispose() {
+    _nick.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final top = await RankingService.fetchTop10();
+    if (!mounted) return;
+    setState(() {
+      _top = top;
+      _loading = false;
+    });
+  }
+
+  Future<void> _send() async {
+    final nick = RankingService.normalizeNick(_nick.text);
+    if (!RankingService.validNick(nick)) {
+      setState(() => _hint = 'use 2-12 letras, números ou _');
+      return;
+    }
+    setState(() {
+      _sending = true;
+      _hint = null;
+    });
+    await ProgressService.saveNickname(nick);
+    final ok = await RankingService.submit(
+      nickname: nick,
+      score: widget.game.score.value,
+      level: widget.game.level,
+      words: widget.game.runWords,
+    );
+    if (!mounted) return;
+    if (ok) {
+      _submitted = true;
+      await _load();
+      if (!mounted) return;
+      setState(() => _sending = false);
+    } else {
+      setState(() {
+        _sending = false;
+        _hint = 'não deu para enviar — tenta de novo';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ranked) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 10),
+        child: Text(
+          'velocidade travada — partida casual, sem ranking',
+          style: TextStyle(color: Color(0xFF5A6284), fontSize: 11),
+        ),
+      );
+    }
+    if (_loading) return const SizedBox(height: 10);
+    final top = _top;
+    if (top == null) return const SizedBox.shrink(); // offline: sem painel
+
+    final score = widget.game.score.value;
+    if (_submitted) {
+      // Placar com a própria linha em destaque.
+      final nick = RankingService.normalizeNick(_nick.text);
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              '🏆 TOP 10',
+              style: TextStyle(
+                color: Color(0xFFFFC93C),
+                fontSize: 12,
+                letterSpacing: 2,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (var i = 0; i < top.length; i++)
+              _rankRow(i + 1, top[i],
+                  mine: top[i].nickname == nick && top[i].score == score),
+          ],
+        ),
+      );
+    }
+    if (!RankingService.qualifies(score, top)) {
+      return const SizedBox.shrink(); // fora do top 10: placar fica no menu
+    }
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF33290E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFFC93C)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '🏆 VOCÊ ENTROU NO TOP 10!',
+            style: TextStyle(
+              color: Color(0xFFFFC93C),
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _nick,
+                  maxLength: 12,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                        RegExp('[A-Za-z0-9_ ]')),
+                  ],
+                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                  decoration: InputDecoration(
+                    hintText: 'seu apelido',
+                    hintStyle: const TextStyle(color: Color(0xFF5A6284)),
+                    counterText: '',
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFF141A2E),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(color: Color(0xFF2A3350)),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFC93C),
+                  foregroundColor: const Color(0xFF070B14),
+                ),
+                onPressed: _sending ? null : _send,
+                child: Text(_sending ? '...' : 'ENVIAR',
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+          if (_hint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                _hint!,
+                style:
+                    const TextStyle(color: Color(0xFFFF5252), fontSize: 11),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rankRow(int pos, RankEntry e, {bool mine = false}) {
+    final color = mine ? const Color(0xFFFFC93C) : const Color(0xFFB9C2D8);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 28,
+            child: Text('$posº',
+                style: TextStyle(color: color, fontSize: 13)),
+          ),
+          Expanded(
+            child: Text(
+              e.nickname,
+              style: TextStyle(
+                color: color,
+                fontSize: 13,
+                fontWeight: mine ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+          ),
+          Text('${e.score}',
+              style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold)),
         ],
       ),
     );

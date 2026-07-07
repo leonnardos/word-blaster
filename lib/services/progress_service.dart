@@ -66,6 +66,7 @@ class ProgressService {
   static const _kMusicOn = 'music_on';
   static const _kShowTranslation = 'show_translation';
   static const _kHiddenMode = 'hidden_mode';
+  static const _kNickname = 'nickname';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -105,6 +106,9 @@ class ProgressService {
   /// palavras genuinamente dominadas (6+ acertos).
   static bool hiddenMode = false;
 
+  /// Apelido do jogador no ranking arcade (pré-preenche o próximo envio).
+  static String nickname = '';
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -125,6 +129,7 @@ class ProgressService {
     musicOn = _prefs.getBool(_kMusicOn) ?? true;
     showTranslation = _prefs.getBool(_kShowTranslation) ?? true;
     hiddenMode = _prefs.getBool(_kHiddenMode) ?? false;
+    nickname = _prefs.getString(_kNickname) ?? '';
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -148,6 +153,11 @@ class ProgressService {
   static Future<void> saveDifficulty(String name) async {
     difficultyName = name;
     await _prefs.setString(_kDifficulty, name);
+  }
+
+  static Future<void> saveNickname(String nick) async {
+    nickname = nick;
+    await _prefs.setString(_kNickname, nick);
   }
 
   static Future<void> saveTopics(Set<String> topics) async {

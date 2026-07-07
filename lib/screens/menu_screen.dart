@@ -5,14 +5,12 @@ import '../data/word_bank.dart';
 import '../game/difficulty.dart';
 import '../services/ads_service.dart';
 import '../services/progress_service.dart';
+import '../services/ranking_service.dart';
 import '../services/sound_service.dart';
 import '../services/tts_service.dart';
+import '../version.dart';
 import 'game_screen.dart';
 import 'menu_background.dart';
-
-/// Versão visível no canto do menu — para conferir se o celular está
-/// rodando o build novo ou um cache velho. Incrementar a cada deploy.
-const kBuildVersion = 'v0.10.5';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -172,7 +170,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-              _topicsButton(),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: [_topicsButton(), _top10Button()],
+              ),
               const SizedBox(height: 14),
               _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
                 await ProgressService.saveMusicVolume(v);
@@ -269,6 +272,139 @@ class _MenuScreenState extends State<MenuScreen> {
       label: Text(label,
           style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
       onPressed: _openTopicsSheet,
+    );
+  }
+
+  Widget _top10Button() {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: const Color(0xE0141A2E),
+        foregroundColor: const Color(0xFFFFC93C),
+        side: const BorderSide(color: Color(0xFF5C4A16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      ),
+      icon: const Icon(Icons.emoji_events_outlined, size: 16),
+      label: const Text('TOP 10',
+          style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
+      onPressed: _openTop10Sheet,
+    );
+  }
+
+  /// Placar arcade online: top 10 geral, sem cadastro.
+  Future<void> _openTop10Sheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF10162A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+        child: FutureBuilder<List<RankEntry>?>(
+          future: RankingService.fetchTop10(),
+          builder: (context, snap) {
+            final Widget body;
+            if (!snap.hasData && snap.connectionState != ConnectionState.done) {
+              body = const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Center(
+                  child: CircularProgressIndicator(color: Color(0xFFFFC93C)),
+                ),
+              );
+            } else if (snap.data == null) {
+              body = const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Text(
+                  'Ranking indisponível — verifique a internet.',
+                  style: TextStyle(color: Color(0xFF8A93B2), fontSize: 13),
+                ),
+              );
+            } else if (snap.data!.isEmpty) {
+              body = const Padding(
+                padding: EdgeInsets.symmetric(vertical: 30),
+                child: Text(
+                  'Ninguém no placar ainda — seja o primeiro!',
+                  style: TextStyle(color: Color(0xFF8A93B2), fontSize: 13),
+                ),
+              );
+            } else {
+              final top = snap.data!;
+              body = Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (var i = 0; i < top.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 34,
+                            child: Text(
+                              '${i + 1}º',
+                              style: TextStyle(
+                                color: i == 0
+                                    ? const Color(0xFFFFC93C)
+                                    : const Color(0xFF8A93B2),
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              top[i].nickname,
+                              style: const TextStyle(
+                                color: Color(0xFFE8ECF0),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Text(
+                            'nv ${top[i].level}',
+                            style: const TextStyle(
+                                color: Color(0xFF5A6284), fontSize: 12),
+                          ),
+                          const SizedBox(width: 14),
+                          Text(
+                            '${top[i].score}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              );
+            }
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  '🏆 TOP 10',
+                  style: TextStyle(
+                    color: Color(0xFFFFC93C),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'partidas em velocidade automática',
+                  style: TextStyle(color: Color(0xFF5A6284), fontSize: 11),
+                ),
+                const SizedBox(height: 10),
+                body,
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

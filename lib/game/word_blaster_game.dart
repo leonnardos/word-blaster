@@ -147,6 +147,7 @@ class WordBlasterGame extends FlameGame {
     if (_isGameOver || _isPaused || _inspected != null) return;
     _isPaused = true;
     pauseEngine();
+    SoundService.setGameplay(false); // trilha só com o jogo rodando
     overlays.add(overlayPaused);
   }
 
@@ -167,6 +168,7 @@ class WordBlasterGame extends FlameGame {
         _inspected = enemy;
         inspectingNotifier.value = true;
         pauseEngine();
+        SoundService.setGameplay(false); // silêncio para ouvir a pronúncia
         overlays.add(overlayInspect);
         TtsService.speak(enemy.word); // pronúncia junto com a leitura
         return true;
@@ -181,7 +183,10 @@ class WordBlasterGame extends FlameGame {
     _inspected = null;
     inspectingNotifier.value = false;
     overlays.remove(overlayInspect);
-    if (!_isPaused && !_isGameOver) resumeEngine();
+    if (!_isPaused && !_isGameOver) {
+      resumeEngine();
+      SoundService.setGameplay(true);
+    }
   }
 
   /// Liga/desliga a tradução nas palavras que já estão na tela.
@@ -195,6 +200,7 @@ class WordBlasterGame extends FlameGame {
     if (!_isPaused) return;
     _isPaused = false;
     resumeEngine();
+    SoundService.setGameplay(true);
     overlays.remove(overlayPaused);
   }
 
@@ -603,6 +609,7 @@ class WordBlasterGame extends FlameGame {
   void _endGame() {
     _isGameOver = true;
     isOverNotifier.value = true;
+    SoundService.setGameplay(false); // silêncio no cartão de resultado
     for (final enemy in List.of(_enemies)) {
       add(buildFireExplosion(enemy.absoluteCenter, scale: 1.2));
       enemy.removeFromParent();
@@ -617,6 +624,7 @@ class WordBlasterGame extends FlameGame {
     endInspect();
     if (_isPaused) resumeGame();
     overlays.remove(overlayGameOver);
+    SoundService.setGameplay(true); // partida nova: trilha de volta
     for (final enemy in List.of(_enemies)) {
       enemy.removeFromParent();
     }

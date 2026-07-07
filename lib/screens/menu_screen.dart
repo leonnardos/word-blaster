@@ -12,7 +12,7 @@ import 'menu_background.dart';
 
 /// Versão visível no canto do menu — para conferir se o celular está
 /// rodando o build novo ou um cache velho. Incrementar a cada deploy.
-const kBuildVersion = 'v0.10.1';
+const kBuildVersion = 'v0.10.2';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -31,9 +31,8 @@ class _MenuScreenState extends State<MenuScreen> {
       (d) => d.name == ProgressService.difficultyName,
       orElse: () => Difficulty.beginner,
     );
-    // No navegador o autoplay pode bloquear esta primeira tentativa; os
-    // toques do menu (JOGAR, volumes) tentam de novo já com gesto.
-    SoundService.playMusic();
+    // O menu é silencioso: a trilha toca só com o jogo rodando
+    // (SoundService.setGameplay, acionado pelo JOGAR).
   }
 
   void _selectDifficulty(Difficulty difficulty) {
@@ -42,10 +41,13 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   Future<void> _play() async {
-    SoundService.playMusic(); // gesto do usuário: destrava o autoplay do web
+    // Gesto do usuário: destrava o autoplay do web E liga a trilha,
+    // que toca apenas durante o jogo ativo.
+    SoundService.setGameplay(true);
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => GameScreen(difficulty: _difficulty)),
     );
+    SoundService.setGameplay(false); // voltou ao menu: silêncio
     // Atualiza recorde/estatísticas ao voltar da partida.
     setState(() {});
   }

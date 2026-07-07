@@ -37,13 +37,24 @@ class SoundService {
     }
   }
 
-  /// Toca (ou retoma) a trilha de guerra respeitando volume e mudo.
-  /// No navegador o autoplay é bloqueado até o primeiro gesto — por isso é
-  /// chamada de novo em toques do menu, quando já há gesto do usuário.
+  /// A trilha toca SÓ com o jogo rodando de verdade (pedido do usuário):
+  /// menu, pause, cartão de dicionário e game over ficam em silêncio.
+  static bool _inGameplay = false;
+
+  /// Liga/desliga o "portão" de gameplay e aplica na hora.
+  static void setGameplay(bool active) {
+    _inGameplay = active;
+    playMusic();
+  }
+
+  /// Toca (ou retoma) a trilha de guerra respeitando o portão de gameplay,
+  /// volume e mudo. No navegador o autoplay é bloqueado até o primeiro
+  /// gesto — o toque em JOGAR já conta como gesto, então destrava.
   static Future<void> playMusic() async {
     if (!_musicLoaded) return;
     try {
-      if (!ProgressService.soundOn ||
+      if (!_inGameplay ||
+          !ProgressService.soundOn ||
           !ProgressService.musicOn ||
           ProgressService.musicVolume == 0) {
         await _music.pause();

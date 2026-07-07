@@ -616,6 +616,10 @@ class WordBlasterGame extends FlameGame {
     _enemies.remove(enemy);
     // Maior que a de destruir: chegar no tanque é o impacto mais violento.
     add(buildFireExplosion(enemy.absoluteCenter, scale: 1.35));
+    // Palavra OCULTA que estourou sem ser digitada: revela na tela e
+    // pronuncia — quem não sabia grava agora e tenta escrever na próxima
+    // (pedido do usuário jogando no modo estudo).
+    if (enemy.isHiddenNow) _revealMissedWord(enemy);
     enemy.removeFromParent();
     SoundService.playLifeLost();
     ProgressService.recordMiss(enemy.word);
@@ -625,6 +629,32 @@ class WordBlasterGame extends FlameGame {
     multiplier.value = 1;
     lives.value--;
     if (lives.value <= 0) _endGame();
+  }
+
+  /// Mostra a palavra revelada subindo do ponto da explosão, em âmbar
+  /// (a cor da ★ de dominada), e a pronuncia.
+  void _revealMissedWord(WordEnemy enemy) {
+    final x = enemy.absoluteCenter.x.clamp(70.0, size.x - 70.0);
+    final reveal = TextComponent(
+      text: enemy.word,
+      anchor: Anchor.center,
+      position: Vector2(x, enemy.absoluteCenter.y - 46),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          fontFamily: 'Exo2',
+          color: Color(0xFFFFC93C),
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          shadows: [Shadow(color: Color(0xCC000000), blurRadius: 8)],
+        ),
+      ),
+    );
+    reveal.addAll([
+      MoveByEffect(Vector2(0, -34), EffectController(duration: 1.8)),
+      RemoveEffect(delay: 1.8),
+    ]);
+    add(reveal);
+    TtsService.speak(enemy.word);
   }
 
   void _endGame() {

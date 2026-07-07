@@ -30,6 +30,7 @@ class WordEnemy extends PositionComponent {
   bool isTargeted = false;
   bool _dead = false;
   bool _revealedByError = false;
+  bool _hidden = false;
   double _errorFlash = 0;
   double _hitFlash = 0;
 
@@ -54,6 +55,10 @@ class WordEnemy extends PositionComponent {
   int get typed => _typed;
 
   bool get isAlive => !_dead;
+
+  /// A palavra está mascarada (***) agora? Usado quando ela estoura no
+  /// tanque: oculta que morre sem ser digitada é revelada na tela.
+  bool get isHiddenNow => _hidden;
 
   /// Chamado pelo jogo a cada letra correta: acende a letra imediatamente.
   void advanceTyped() {
@@ -92,6 +97,7 @@ class WordEnemy extends PositionComponent {
     // erro já tenha revelado esta palavra.
     final hidden = !_revealedByError &&
         (mastery == Mastery.dominada || ProgressService.hiddenMode);
+    _hidden = hidden;
     final rest = word.substring(_typed);
     _enPainter = TextPainter(
       text: TextSpan(

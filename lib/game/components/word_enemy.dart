@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flame/components.dart';
 import 'package:flutter/painting.dart';
 
@@ -60,6 +62,11 @@ class WordEnemy extends PositionComponent {
   /// Fase das rodas/esteiras (avança com o movimento — veículo andando).
   double _phase = 0;
   double _treadGap = 0;
+
+  /// Direção real do movimento (unitária): o veículo VIRA para onde anda
+  /// e as pegadas saem da traseira verdadeira — sem "andar de caranguejo"
+  /// quando converge para o tanque (feedback do usuário).
+  final Vector2 _moveDir = Vector2(0, 1);
 
   static int kindFor(String en) => (en.contains(' ') || en.length >= 8)
       ? 2
@@ -248,18 +255,19 @@ class WordEnemy extends PositionComponent {
     super.update(dt);
     if (_dead) return;
 
-    // Rodas girando + marcas de esteira curtas na estrada.
+    // Rodas girando + marcas de esteira curtas na estrada — as pegadas
+    // saem da TRASEIRA real (considerando para onde o veículo aponta).
     _phase += speed * dt;
     _treadGap += speed * dt;
     if (_treadGap >= 12 && dropTread != null) {
       _treadGap = 0;
       final veh = enemyVehicleSize(vehicleKind);
-      final local = _vehTopLeft;
-      final origin = position - size / 2;
-      final inset = veh.width * 0.14;
-      final rearY = origin.y + local.dy + 5;
-      dropTread!(Vector2(origin.x + local.dx + inset, rearY));
-      dropTread!(Vector2(origin.x + local.dx + veh.width - inset, rearY));
+      final center = vehicleCenter;
+      final rear = center - _moveDir * (veh.height / 2 - 5);
+      final perp = Vector2(-_moveDir.y, _moveDir.x);
+      final inset = veh.width / 2 - veh.width * 0.14;
+      dropTread!(rear + perp * inset);
+      dropTread!(rear - perp * inset);
     }
 
     final home = homingTarget?.call();
@@ -272,8 +280,10 @@ class WordEnemy extends PositionComponent {
       final dir = Vector2(0, 1) * (1 - pull) + toTank * pull;
       if (dir.length2 > 0.001) dir.normalize();
       position += dir * (speed * dt);
+      _moveDir.setFrom(dir);
     } else {
       position.y += speed * dt;
+      _moveDir.setValues(0, 1);
     }
 
     if (_errorFlash > 0) _errorFlash -= dt;
@@ -326,9 +336,13 @@ class WordEnemy extends PositionComponent {
       );
     }
 
-    // O veículo descendo (rodas girando), chamuscando a cada tiro.
+    // O veículo descendo (rodas girando), chamuscando a cada tiro —
+    // GIRADO para a direção real do movimento (nada de andar de lado).
+    final heading = atan2(_moveDir.x, _moveDir.y);
     canvas.save();
-    canvas.translate(vehPos.dx, vehPos.dy);
+    canvas.translate(vehCenter.dx, vehCenter.dy);
+    canvas.rotate(-heading);
+    canvas.translate(-veh.width / 2, -veh.height / 2);
     drawEnemyVehicle(
       canvas,
       vehicleKind,
@@ -336,17 +350,17 @@ class WordEnemy extends PositionComponent {
       damage: word.isEmpty ? 0 : _revealed / word.length,
       phase: _phase,
     );
-    canvas.restore();
     // Erro tinge o veículo de vermelho por um instante.
     if (_errorFlash > 0) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(vehPos.dx, vehPos.dy, veh.width, veh.height),
+          Rect.fromLTWH(0, 0, veh.width, veh.height),
           const Radius.circular(10),
         ),
         Paint()..color = const Color(0xFFFF2E2E).withValues(alpha: 0.25),
       );
     }
+    canvas.restore();
 
     // Placa da palavra, na diagonal traseira.
     final plateRect = RRect.fromRectAndRadius(

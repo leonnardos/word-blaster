@@ -84,7 +84,8 @@ Paint get _outlinePaint => Paint()
 /// Jipe de assalto: capô na frente (embaixo), para-brisa inclinado e
 /// caçamba com carga atrás (em cima). Quatro pneus salientes.
 void _drawJeep(Canvas canvas, double w, double h, double phase) {
-  // Pneus (salientes nas laterais), girando.
+  // Pneus (salientes nas laterais), girando — SEM borda clara: pneu de
+  // carro é borracha escura (feedback do usuário).
   final tire = Paint()..color = _track;
   for (final ty in [h * 0.18, h * 0.68]) {
     for (final tx in [1.0, w - 8]) {
@@ -94,7 +95,6 @@ void _drawJeep(Canvas canvas, double w, double h, double phase) {
       );
       canvas.drawRRect(r, tire);
       _drawRolling(canvas, r, phase, 4.5);
-      canvas.drawRRect(r, Paint()..color = _trackEdge..style = PaintingStyle.stroke..strokeWidth = 1);
     }
   }
 
@@ -147,7 +147,7 @@ void _drawJeep(Canvas canvas, double w, double h, double phase) {
 /// Blindado (APC): casco anguloso com nariz em bico na frente (embaixo),
 /// quatro rodas grandes e torreta pequena com metralhadora.
 void _drawApc(Canvas canvas, double w, double h, double phase) {
-  // Rodas girando.
+  // Rodas girando — sem borda clara (pneu é borracha escura).
   final tire = Paint()..color = _track;
   for (final ty in [h * 0.14, h * 0.42, h * 0.68]) {
     for (final tx in [0.5, w - 8.5]) {
@@ -157,7 +157,6 @@ void _drawApc(Canvas canvas, double w, double h, double phase) {
       );
       canvas.drawRRect(r, tire);
       _drawRolling(canvas, r, phase, 5.0);
-      canvas.drawRRect(r, Paint()..color = _trackEdge..style = PaintingStyle.stroke..strokeWidth = 1);
     }
   }
 

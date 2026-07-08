@@ -113,10 +113,11 @@ class _MenuScreenState extends State<MenuScreen> {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, box) {
-                // SEM rolagem quando cabe: a coluna é esticada à altura da
-                // tela e o spaceEvenly reparte a sobra IGUALMENTE entre os
-                // blocos (pedido do usuário). Em janelas muito baixas o
-                // scroll continua como rede de segurança.
+                // Layout: banner no TOPO (o fundo fica como era, com o
+                // INSTALAR/troféu por cima), espaço MÍNIMO de 10px+ entre
+                // os cards, e a sobra distribuída por igual (spaceBetween
+                // com respiros embutidos nos blocos). Scroll só de rede de
+                // segurança para janelas muito baixas.
                 return SingleChildScrollView(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(minHeight: box.maxHeight),
@@ -124,7 +125,7 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 660),
                         child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               // FAIXA do logo (recorte da arte com fade na base): flui na
               // coluna como widget normal — o slogan NUNCA sobrepõe, em
@@ -132,6 +133,7 @@ class _MenuScreenState extends State<MenuScreen> {
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  const SizedBox(height: 4),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 480),
                     child: Image.asset(
@@ -177,8 +179,16 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                 ],
               ),
-              _vocabBar(),
-              _skillsGrid(),
+              // Respiro MÍNIMO de 12px entre cards (embutido) + a sobra
+              // da tela repartida pelo spaceBetween.
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: _vocabBar(),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: _skillsGrid(),
+              ),
               Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -203,12 +213,15 @@ class _MenuScreenState extends State<MenuScreen> {
                           .toList(),
                     ),
                   ),
+                  const SizedBox(height: 6),
                 ],
               ),
               // O botão-herói no estilo da referência do usuário: placa de
               // OURO com moldura bronze escura e rebites nas pontas.
               // Hover (desktop): cresce e brilha mais.
-              MouseRegion(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 18),
+                child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 onEnter: (_) => setState(() => _missionHover = true),
                 onExit: (_) => setState(() => _missionHover = false),
@@ -291,6 +304,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 ),
               ),
+              ),
             ],
                         ),
                       ),
@@ -300,14 +314,8 @@ class _MenuScreenState extends State<MenuScreen> {
               },
             ),
       ),
-          // Troféu do TOP 10: fixo no topo esquerdo, na linha do logo.
-          Positioned(
-            left: 10,
-            top: 10,
-            child: SafeArea(child: _trophyFab()),
-          ),
-          // INSTALAR: fixo no topo direito (só navegador de celular,
-          // some quando o app já está instalado).
+          // INSTALAR: pill FINA fixa no topo direito, POR CIMA do fundo
+          // (só navegador de celular; some quando o app já está instalado).
           Positioned(
             right: 10,
             top: 10,
@@ -500,24 +508,25 @@ class _MenuScreenState extends State<MenuScreen> {
           setState(() {});
         }
       },
+      // Fina e discreta: flutua sobre o fundo sem roubar a cena.
       child: Container(
-        height: 42,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        height: 30,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
         decoration: BoxDecoration(
-          color: const Color(0xE0141A2E),
-          borderRadius: BorderRadius.circular(12),
+          color: const Color(0xB3141A2E),
+          borderRadius: BorderRadius.circular(15),
           border: Border.all(color: const Color(0xFF14505C)),
         ),
         child: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.install_mobile, color: Color(0xFF00E5FF), size: 17),
-            SizedBox(width: 7),
+            Icon(Icons.install_mobile, color: Color(0xFF00E5FF), size: 14),
+            SizedBox(width: 6),
             Text(
               'INSTALAR',
               style: TextStyle(
                 color: Color(0xFF00E5FF),
-                fontSize: 11.5,
+                fontSize: 10,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.w600,
               ),
@@ -737,23 +746,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Troféu fixo no canto superior esquerdo: abre o TOP 10.
-  Widget _trophyFab() {
-    return GestureDetector(
-      onTap: _openTop10Sheet,
-      child: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: const Color(0xE0141A2E),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF5C4A16)),
-        ),
-        child: const Icon(Icons.emoji_events,
-            color: Color(0xFFFFC93C), size: 22),
-      ),
-    );
-  }
 
   /// Placar arcade online: top 10 geral, sem cadastro.
   Future<void> _openTop10Sheet() async {
@@ -1114,8 +1106,6 @@ class _MenuScreenState extends State<MenuScreen> {
               children: [
                 _stat('MAIOR PONTUAÇÃO', '${ProgressService.bestScore}'),
                 _statDivider(),
-                _stat('DOMINADAS', '${ProgressService.masteredCount}'),
-                _statDivider(),
                 _stat('PRECISÃO',
                     '${(ProgressService.lifetimeAccuracy * 100).round()}%'),
                 _statDivider(),
@@ -1124,6 +1114,34 @@ class _MenuScreenState extends State<MenuScreen> {
                     ProgressService.streakDays > 0
                         ? '${ProgressService.streakDays} dias'
                         : '—'),
+                _statDivider(),
+                // TOP 10 mora aqui (no lugar de "dominadas", que já
+                // aparece logo acima na própria barra).
+                GestureDetector(
+                  onTap: _openTop10Sheet,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 18),
+                    child: Column(
+                      children: [
+                        Icon(Icons.emoji_events,
+                            color: Color(0xFFFFC93C), size: 24),
+                        SizedBox(height: 2),
+                        Text(
+                          'TOP 10',
+                          style: TextStyle(
+                            color: Color(0xFFFFC93C),
+                            fontSize: 11,
+                            letterSpacing: 2,
+                            shadows: [
+                              Shadow(
+                                  color: Color(0xCC000000), blurRadius: 6)
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

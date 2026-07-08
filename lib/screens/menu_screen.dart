@@ -301,8 +301,24 @@ class _MenuScreenState extends State<MenuScreen> {
       'B1': 'intermediário',
       'B2': 'intermediário-alto',
       'C1': 'avançado',
-      'C2': 'vocabulário inteiro',
+      'C2': 'proficiente',
     };
+    // Nível só é selecionável com conteúdo de verdade (30+ palavras dele);
+    // os demais ficam "EM BREVE" e DESTRAVAM SOZINHOS quando as palavras
+    // entrarem no Supabase — sem novo deploy.
+    final counts = <String, int>{};
+    for (final level in runtimeCefr.values) {
+      counts[level] = (counts[level] ?? 0) + 1;
+    }
+    bool available(String level) =>
+        level == 'A1' || (counts[level] ?? 0) >= 30;
+
+    Future<void> pick(String value) async {
+      await ProgressService.saveMaxCefr(value);
+      if (mounted) Navigator.of(context).pop();
+      setState(() {});
+    }
+
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF10162A),
@@ -328,9 +344,35 @@ class _MenuScreenState extends State<MenuScreen> {
               style: TextStyle(color: Color(0xFF5A6284), fontSize: 11),
             ),
             const SizedBox(height: 12),
-            for (final level in cefrOrder)
+            // TODOS (padrão): sem filtro — internamente maxCefr = C2.
+            ListTile(
+              dense: true,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              tileColor: ProgressService.maxCefr == 'C2'
+                  ? const Color(0xFF0E2A33)
+                  : null,
+              leading: Icon(
+                Icons.all_inclusive,
+                size: 20,
+                color: ProgressService.maxCefr == 'C2'
+                    ? const Color(0xFF00E5FF)
+                    : const Color(0xFFAAB4CE),
+              ),
+              title: const Text(
+                'TODOS — vocabulário inteiro',
+                style: TextStyle(color: Color(0xFF8A93B2), fontSize: 13),
+              ),
+              trailing: ProgressService.maxCefr == 'C2'
+                  ? const Icon(Icons.check,
+                      color: Color(0xFF00E5FF), size: 18)
+                  : null,
+              onTap: () => pick('C2'),
+            ),
+            for (final level in cefrOrder.where((l) => l != 'C2'))
               ListTile(
                 dense: true,
+                enabled: available(level),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)),
                 tileColor: level == ProgressService.maxCefr
@@ -339,26 +381,47 @@ class _MenuScreenState extends State<MenuScreen> {
                 leading: Text(
                   level,
                   style: TextStyle(
-                    color: level == ProgressService.maxCefr
-                        ? const Color(0xFF00E5FF)
-                        : const Color(0xFFAAB4CE),
+                    color: !available(level)
+                        ? const Color(0xFF3A4258)
+                        : level == ProgressService.maxCefr
+                            ? const Color(0xFF00E5FF)
+                            : const Color(0xFFAAB4CE),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 title: Text(
                   descriptions[level]!,
-                  style: const TextStyle(
-                      color: Color(0xFF8A93B2), fontSize: 13),
+                  style: TextStyle(
+                    color: available(level)
+                        ? const Color(0xFF8A93B2)
+                        : const Color(0xFF3A4258),
+                    fontSize: 13,
+                  ),
                 ),
-                trailing: level == ProgressService.maxCefr
-                    ? const Icon(Icons.check, color: Color(0xFF00E5FF), size: 18)
-                    : null,
-                onTap: () async {
-                  await ProgressService.saveMaxCefr(level);
-                  if (context.mounted) Navigator.of(context).pop();
-                  setState(() {});
-                },
+                trailing: !available(level)
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          border:
+                              Border.all(color: const Color(0xFF3A4258)),
+                        ),
+                        child: const Text(
+                          'EM BREVE',
+                          style: TextStyle(
+                            color: Color(0xFF5A6284),
+                            fontSize: 9,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      )
+                    : level == ProgressService.maxCefr
+                        ? const Icon(Icons.check,
+                            color: Color(0xFF00E5FF), size: 18)
+                        : null,
+                onTap: available(level) ? () => pick(level) : null,
               ),
           ],
         ),

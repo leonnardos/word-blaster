@@ -25,6 +25,29 @@ if (!_wbGl) {
   setTimeout(function () { _wbBanner.remove(); }, 12000);
 }
 
+// ---- Instalação PWA (o app Flutter consulta via js_interop) ----
+// Android/Chrome: captura o beforeinstallprompt para o card INSTALAR
+// dentro do jogo disparar o prompt nativo. iOS não tem prompt (o card
+// vira instrução de "Adicionar à Tela de Início").
+window._wbInstallEvt = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  window._wbInstallEvt = e;
+});
+window._wbHasPrompt = function () { return !!window._wbInstallEvt; };
+window._wbPromptInstall = function () {
+  var e = window._wbInstallEvt;
+  if (!e) return false;
+  window._wbInstallEvt = null;
+  e.prompt();
+  return true;
+};
+window._wbIsStandalone = function () {
+  return (window.matchMedia &&
+    window.matchMedia('(display-mode: standalone)').matches) ||
+    window.navigator.standalone === true;
+};
+
 _flutter.loader.load({
   // Service worker: cacheia o jogo (funciona offline depois da 1ª visita)
   // e é o que permite INSTALAR como app pela engrenagem do Chrome (PWA).

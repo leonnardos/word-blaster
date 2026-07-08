@@ -1,9 +1,12 @@
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 import '../data/word_bank.dart';
 import '../game/difficulty.dart';
 import '../services/ads_service.dart';
+import '../services/install_service.dart';
 import '../services/progress_service.dart';
 import '../services/ranking_service.dart';
 import '../services/sound_service.dart';
@@ -31,6 +34,17 @@ class _MenuScreenState extends State<MenuScreen> {
     );
     // O menu é silencioso: a trilha toca só com o jogo rodando
     // (SoundService.setGameplay, acionado pelo JOGAR).
+
+    // O beforeinstallprompt (Android) pode chegar DEPOIS do primeiro
+    // build — reconfere para o card de instalação aparecer.
+    if (InstallService.supported) {
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() {});
+      });
+      Future.delayed(const Duration(seconds: 8), () {
+        if (mounted) setState(() {});
+      });
+    }
   }
 
   void _selectDifficulty(Difficulty difficulty) {
@@ -152,6 +166,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               const Spacer(),
+              _installCard(),
               const Text(
                 'ESCOLHA SEU NÍVEL',
                 style: TextStyle(
@@ -274,6 +289,100 @@ class _MenuScreenState extends State<MenuScreen> {
       label: Text(label,
           style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
       onPressed: _openTopicsSheet,
+    );
+  }
+
+  /// Card "instale o app": só no navegador do CELULAR, só se ainda não
+  /// está instalado. Android mostra INSTALAR (prompt nativo via
+  /// beforeinstallprompt); iPhone não tem prompt — vira instrução de
+  /// "Adicionar à Tela de Início". Dispensável (persistido).
+  Widget _installCard() {
+    if (ProgressService.installCardHidden ||
+        !InstallService.supported ||
+        InstallService.isStandalone) {
+      return const SizedBox.shrink();
+    }
+    final isIos = defaultTargetPlatform == TargetPlatform.iOS;
+    final isAndroid = defaultTargetPlatform == TargetPlatform.android;
+    if (!isIos && !isAndroid) return const SizedBox.shrink();
+    if (isAndroid && !InstallService.hasPrompt) {
+      // Chrome não ofereceu instalação: ou já está instalado, ou ainda
+      // não liberou — sem sinal confiável, melhor não mostrar nada.
+      return const SizedBox.shrink();
+    }
+
+    Future<void> dismiss() async {
+      await ProgressService.hideInstallCard();
+      if (mounted) setState(() {});
+    }
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: BoxDecoration(
+        color: const Color(0xE0141A2E),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.install_mobile,
+                  color: Color(0xFF00E5FF), size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  isIos
+                      ? 'Instale no iPhone: toque em Compartilhar '
+                          'e depois em "Adicionar à Tela de Início".'
+                      : 'Instale o Word Blaster: tela cheia, offline '
+                          'e ícone na tela inicial.',
+                  style: const TextStyle(
+                      color: Color(0xFFD9DEE8), fontSize: 11.5),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              TextButton(
+                onPressed: dismiss,
+                child: const Text(
+                  'AGORA NÃO',
+                  style: TextStyle(
+                      color: Color(0xFF5A6284),
+                      fontSize: 11,
+                      letterSpacing: 1),
+                ),
+              ),
+              const SizedBox(width: 4),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E5FF),
+                  foregroundColor: const Color(0xFF070B14),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 6),
+                  minimumSize: Size.zero,
+                ),
+                onPressed: () {
+                  if (!isIos) InstallService.promptInstall();
+                  dismiss();
+                },
+                child: Text(
+                  isIos ? 'ENTENDI' : 'INSTALAR',
+                  style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

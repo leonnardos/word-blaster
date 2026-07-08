@@ -27,6 +27,7 @@ class MenuScreen extends StatefulWidget {
 
 class _MenuScreenState extends State<MenuScreen> {
   late Difficulty _difficulty;
+  bool _missionHover = false;
 
   @override
   void initState() {
@@ -114,23 +115,28 @@ class _MenuScreenState extends State<MenuScreen> {
           // Fagulhas e fumaça sutis flutuando por cima do véu.
           const MenuParticles(),
           SafeArea(
-            child: Center(
+            child: LayoutBuilder(
+              builder: (context, box) {
+                // O logo está PINTADO no fundo (BoxFit.cover, topCenter):
+                // a altura RENDERIZADA dele depende da escala do cover —
+                // calcular certo evita o slogan invadir o logo. A imagem
+                // tem 842×1263 e o logo termina em y≈255.
+                final coverScale =
+                    max(box.maxHeight / 1263.0, box.maxWidth / 842.0);
+                final logoGap = (255.0 * coverScale + 4).clamp(120.0, 260.0);
+                return Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 660),
-                // Rolável: o menu novo é uma "landing page" (mockup do
-                // usuário) — telas altas veem tudo, baixas rolam.
+                // Sem barra de rolagem nas telas normais (pedido do
+                // usuário); o scroll fica só de rede de segurança para
+                // janelas muito baixas.
                 child: SingleChildScrollView(
                   padding:
-                      const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
+                      const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
                   child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // O logo vem PINTADO na imagem de fundo (combinada pelo
-              // usuário): este vão faz o conteúdo começar logo abaixo dele.
-              SizedBox(
-                height: (MediaQuery.of(context).size.height * 0.17)
-                    .clamp(110.0, 195.0),
-              ),
+              SizedBox(height: logoGap),
               // Slogan do mockup: vendedor, não descritivo.
               const Text(
                 'Aprenda inglês jogando.',
@@ -142,24 +148,32 @@ class _MenuScreenState extends State<MenuScreen> {
                   shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
                 ),
               ),
-              const SizedBox(height: 3),
-              const Text(
-                'Digite mais rápido. Entenda mais. Memorize naturalmente.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF00B8CC),
-                  fontSize: 11.5,
-                  letterSpacing: 1,
-                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
+              const SizedBox(height: 2),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Digite mais rápido e memorize naturalmente.',
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: Color(0xFF00B8CC),
+                      fontSize: 11.5,
+                      letterSpacing: 1,
+                      shadows: [
+                        Shadow(color: Color(0xCC000000), blurRadius: 6)
+                      ],
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 12),
               _vocabBar(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 11),
               _skillsGrid(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 11),
               _statsPanel(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 13),
               const Text(
                 '★  ESCOLHA SUA PATENTE  ★',
                 style: TextStyle(
@@ -190,21 +204,35 @@ class _MenuScreenState extends State<MenuScreen> {
                   ..._installButton(),
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 14),
               // O botão-herói no estilo da referência do usuário: placa de
               // OURO com moldura bronze escura e rebites nas pontas.
-              GestureDetector(
+              // Hover (desktop): cresce e brilha mais.
+              MouseRegion(
+                cursor: SystemMouseCursors.click,
+                onEnter: (_) => setState(() => _missionHover = true),
+                onExit: (_) => setState(() => _missionHover = false),
+                child: GestureDetector(
                 onTap: _play,
-                child: Container(
+                child: AnimatedScale(
+                  scale: _missionHover ? 1.05 : 1.0,
+                  duration: const Duration(milliseconds: 140),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
                   width: 312,
-                  height: 64,
+                  height: 62,
                   decoration: BoxDecoration(
                     color: const Color(0xFF241708),
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(color: const Color(0xFF0F0A04)),
-                    boxShadow: const [
-                      BoxShadow(color: Color(0x55FFC93C), blurRadius: 24),
+                    boxShadow: [
                       BoxShadow(
+                        color: _missionHover
+                            ? const Color(0x99FFD96A)
+                            : const Color(0x55FFC93C),
+                        blurRadius: _missionHover ? 34 : 24,
+                      ),
+                      const BoxShadow(
                         color: Color(0x99000000),
                         blurRadius: 8,
                         offset: Offset(0, 3),
@@ -271,23 +299,17 @@ class _MenuScreenState extends State<MenuScreen> {
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                'Cada inimigo destruído adiciona uma nova\npalavra ao seu vocabulário.',
-                textAlign: TextAlign.center,
-                // Cinza bem claro + sombra: legível sobre a arte de fundo.
-                style: TextStyle(
-                  color: Color(0xFFD9DEE8),
-                  fontSize: 12,
-                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
+                ),
                 ),
               ),
+              const SizedBox(height: 10),
             ],
           ),
                 ),
               ),
-        ),
+                );
+              },
+            ),
       ),
           // Links das páginas do site (AdSense pede privacidade acessível).
           if (WebLinks.available)

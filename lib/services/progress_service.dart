@@ -68,6 +68,10 @@ class ProgressService {
   static const _kHiddenMode = 'hidden_mode';
   static const _kNickname = 'nickname';
   static const _kMaxCefr = 'max_cefr';
+  static const _kTotalCorrect = 'total_correct_chars';
+  static const _kTotalWrong = 'total_wrong_chars';
+  static const _kLastPlayDay = 'last_play_day';
+  static const _kStreakDays = 'streak_days';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -75,6 +79,53 @@ class ProgressService {
   static int bestScore = 0;
   static int totalXp = 0;
   static int totalWordsDestroyed = 0;
+
+  /// Precisão VITALÍCIA (todas as partidas): letras certas e erradas.
+  static int totalCorrectChars = 0;
+  static int totalWrongChars = 0;
+
+  /// Sequência de DIAS jogados (streak): aversão à perda em ação.
+  static String? lastPlayDay;
+  static int streakDays = 0;
+
+  /// Precisão vitalícia 0..1 (1 = nunca errou / nunca jogou).
+  static double get lifetimeAccuracy =>
+      (totalCorrectChars + totalWrongChars) == 0
+          ? 1
+          : totalCorrectChars / (totalCorrectChars + totalWrongChars);
+
+  /// Quantas palavras o jogador já DOMINOU (maestria 6+ acertos líquidos).
+  static int get masteredCount =>
+      _wordStats.values.where((s) => s.mastery == Mastery.dominada).length;
+
+  /// Escada de marcos da barra de vocabulário: sempre há um objetivo
+  /// alcançável à vista (50 → 100 → 250 → 500 → banco inteiro).
+  static const vocabGoals = [50, 100, 250, 500, 1001];
+
+  static int nextVocabGoal(int mastered) {
+    for (final goal in vocabGoals) {
+      if (mastered < goal) return goal;
+    }
+    return vocabGoals.last;
+  }
+
+  /// Streak do dia: mesma data mantém, dia seguinte soma, lacuna zera.
+  /// Pura (testável); [today] no formato yyyy-mm-dd de [dayKey].
+  static int nextStreak({
+    required String? lastDay,
+    required int current,
+    required DateTime now,
+  }) {
+    final today = dayKey(now);
+    if (lastDay == today) return current == 0 ? 1 : current;
+    final yesterday = dayKey(now.subtract(const Duration(days: 1)));
+    return lastDay == yesterday ? current + 1 : 1;
+  }
+
+  static String dayKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   /// Nome do [Difficulty] escolhido na tela inicial (persistido entre sessões).
   static String difficultyName = 'beginner';
@@ -119,6 +170,19 @@ class ProgressService {
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
     totalXp = _prefs.getInt(_kTotalXp) ?? 0;
     totalWordsDestroyed = _prefs.getInt(_kTotalWords) ?? 0;
+    totalCorrectChars = _prefs.getInt(_kTotalCorrect) ?? 0;
+    totalWrongChars = _prefs.getInt(_kTotalWrong) ?? 0;
+    lastPlayDay = _prefs.getString(_kLastPlayDay);
+    streakDays = _prefs.getInt(_kStreakDays) ?? 0;
+    // Sequência quebrada desde a última visita? Zera já na abertura,
+    // para o menu não exibir uma sequência que não existe mais.
+    if (lastPlayDay != null && streakDays > 0) {
+      final now = DateTime.now();
+      if (lastPlayDay != dayKey(now) &&
+          lastPlayDay != dayKey(now.subtract(const Duration(days: 1)))) {
+        streakDays = 0;
+      }
+    }
     difficultyName = _prefs.getString(_kDifficulty) ?? 'beginner';
     // Descarta nomes de tópicos que não existem mais (renomeados em alguma
     // atualização) — um nome fantasma deixaria o sorteio sem palavras.
@@ -230,14 +294,31 @@ class ProgressService {
     return entries.take(limit).map((e) => e.key).toList();
   }
 
-  static Future<void> saveRun({required int score, required int xp, required int words}) async {
+  static Future<void> saveRun({
+    required int score,
+    required int xp,
+    required int words,
+    int correct = 0,
+    int wrong = 0,
+  }) async {
     totalXp += xp;
     totalWordsDestroyed += words;
+    totalCorrectChars += correct;
+    totalWrongChars += wrong;
     if (score > bestScore) bestScore = score;
+
+    final now = DateTime.now();
+    streakDays =
+        nextStreak(lastDay: lastPlayDay, current: streakDays, now: now);
+    lastPlayDay = dayKey(now);
 
     await _prefs.setInt(_kBestScore, bestScore);
     await _prefs.setInt(_kTotalXp, totalXp);
     await _prefs.setInt(_kTotalWords, totalWordsDestroyed);
+    await _prefs.setInt(_kTotalCorrect, totalCorrectChars);
+    await _prefs.setInt(_kTotalWrong, totalWrongChars);
+    await _prefs.setString(_kLastPlayDay, lastPlayDay!);
+    await _prefs.setInt(_kStreakDays, streakDays);
     await _prefs.setString(
       _kWordStats,
       jsonEncode(_wordStats.map((k, v) => MapEntry(k, v.toJson()))),

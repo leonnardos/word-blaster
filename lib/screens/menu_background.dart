@@ -20,6 +20,116 @@ class MenuBackground extends StatelessWidget {
   }
 }
 
+/// Partículas sutis flutuando sobre o menu: fagulhas âmbar subindo com
+/// leve deriva e fiapos de fumaça — vida no cenário sem roubar o foco
+/// (direção do mockup do usuário). Uma única camada animada e barata;
+/// a arte de fundo continua estática/cacheada.
+class MenuParticles extends StatefulWidget {
+  const MenuParticles({super.key});
+
+  @override
+  State<MenuParticles> createState() => _MenuParticlesState();
+}
+
+class _MenuParticlesState extends State<MenuParticles>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(seconds: 14),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _ParticlesPainter(_controller),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class _ParticlesPainter extends CustomPainter {
+  final Animation<double> anim;
+
+  _ParticlesPainter(this.anim) : super(repaint: anim);
+
+  // Partículas fixas por seed: cada uma tem posição-base, velocidade de
+  // subida, deriva lateral e fase própria — o loop de 14s fecha sem pulo.
+  static final List<_Particle> _particles = () {
+    final rnd = Random(11);
+    return [
+      for (var i = 0; i < 16; i++)
+        _Particle(
+          x: rnd.nextDouble(),
+          y: rnd.nextDouble(),
+          laps: 1 + rnd.nextInt(2), // voltas por ciclo (velocidades variadas)
+          drift: 0.008 + rnd.nextDouble() * 0.02,
+          phase: rnd.nextDouble() * 2 * pi,
+          size: 1.0 + rnd.nextDouble() * 1.8,
+          smoke: i % 6 == 5, // 1 em 6 é fumaça
+        ),
+    ];
+  }();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final t = anim.value;
+    for (final p in _particles) {
+      // Sobe em loop; a fração some no topo e renasce embaixo.
+      final fy = (p.y - t * p.laps) % 1.0;
+      final fx = p.x + sin(t * 2 * pi * p.laps + p.phase) * p.drift;
+      final pos = Offset(fx * size.width, fy * size.height);
+      // Nasce e morre suave (alpha em rampa nas pontas do trajeto).
+      final edge = (fy < 0.15 ? fy / 0.15 : (fy > 0.85 ? (1 - fy) / 0.15 : 1.0));
+      if (p.smoke) {
+        canvas.drawCircle(
+          pos,
+          16 + p.size * 6,
+          Paint()
+            ..color = const Color(0xFF2C2016).withValues(alpha: 0.16 * edge)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18),
+        );
+      } else {
+        canvas.drawCircle(
+          pos,
+          p.size,
+          Paint()
+            ..color = (p.size > 2.0
+                    ? const Color(0xFFFFB74D)
+                    : const Color(0xFFFF8A3C))
+                .withValues(alpha: 0.42 * edge),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ParticlesPainter old) => false;
+}
+
+class _Particle {
+  final double x, y, drift, phase, size;
+  final int laps;
+  final bool smoke;
+
+  const _Particle({
+    required this.x,
+    required this.y,
+    required this.laps,
+    required this.drift,
+    required this.phase,
+    required this.size,
+    required this.smoke,
+  });
+}
+
 class _BattleScenePainter extends CustomPainter {
   const _BattleScenePainter();
 

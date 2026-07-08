@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -80,95 +82,89 @@ class _MenuScreenState extends State<MenuScreen> {
           // Arte de batalha pintada por código (tanque, fogo, fumaça,
           // destroços de palavras) — recriação da referência do usuário.
           const MenuBackground(),
-          // A arte do usuário (assets/images/menu_bg.png) cobre a pintura;
+          // A arte do usuário (campo de batalha devastado) cobre a pintura;
           // sem o arquivo, o errorBuilder não mostra nada. FilterQuality.high
           // é essencial: o padrão (low) borra a imagem ao redimensionar.
           Image.asset(
-            'assets/images/menu_bg.png',
+            'assets/images/menu_bg2.jpg',
             fit: BoxFit.cover,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
-          // Véu escuro para o texto continuar legível sobre a arte.
+          // Véu escuro FORTE (~75%): a arte vira clima, o foco é o menu
+          // (direção do mockup do usuário).
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xB3070B14),
-                  Color(0x99070B14),
                   Color(0xCC070B14),
+                  Color(0xBF070B14),
+                  Color(0xD9070B14),
                 ],
               ),
             ),
           ),
+          // Fagulhas e fumaça sutis flutuando por cima do véu.
+          const MenuParticles(),
           SafeArea(
             child: Center(
-              child: Column(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 660),
+                // Rolável: o menu novo é uma "landing page" (mockup do
+                // usuário) — telas altas veem tudo, baixas rolam.
+                child: SingleChildScrollView(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
+                  child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Spacer(flex: 2),
-              const FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'WORD',
-                  maxLines: 1,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 48,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 12,
-                    height: 0.9,
-                  ),
-                ),
-              ),
+              // Logo do usuário (asas militares + estrelas); sem o arquivo,
+              // cai no título em texto de sempre.
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: const Text(
-                    'BLASTER',
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: Color(0xFF00E5FF),
-                      fontSize: 48,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 12,
-                      height: 1.1,
-                    ),
-                  ),
+                padding: const EdgeInsets.symmetric(horizontal: 34),
+                child: Image.asset(
+                  'assets/images/logo.png',
+                  semanticLabel: 'Word Blaster',
+                  filterQuality: FilterQuality.high,
+                  isAntiAlias: true,
+                  errorBuilder: (_, __, ___) => const _TextLogo(),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
+              // Slogan do mockup: vendedor, não descritivo.
               const Text(
-                'Digite. Destrua. Aprenda.',
+                'Aprenda inglês jogando.',
                 style: TextStyle(
-                  color: Color(0xFF8A93B2),
+                  color: Colors.white,
                   fontSize: 15,
+                  fontWeight: FontWeight.bold,
                   letterSpacing: 1.5,
+                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
                 ),
               ),
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _stat('RECORDE', '${ProgressService.bestScore}'),
-                      _stat('XP TOTAL', '${ProgressService.totalXp}'),
-                      _stat('PALAVRAS',
-                          '${ProgressService.totalWordsDestroyed}'),
-                    ],
-                  ),
-                ),
-              ),
-              const Spacer(),
+              const SizedBox(height: 3),
               const Text(
-                'ESCOLHA SEU NÍVEL',
+                'Digite mais rápido. Entenda mais. Memorize naturalmente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFF00B8CC),
+                  fontSize: 11.5,
+                  letterSpacing: 1,
+                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
+                ),
+              ),
+              const SizedBox(height: 18),
+              _vocabBar(),
+              const SizedBox(height: 16),
+              _skillsGrid(),
+              const SizedBox(height: 16),
+              _statsPanel(),
+              const SizedBox(height: 20),
+              const Text(
+                '★  ESCOLHA SUA PATENTE  ★',
                 style: TextStyle(
                   color: Color(0xFF9AA3BC),
                   fontSize: 11,
@@ -211,32 +207,41 @@ class _MenuScreenState extends State<MenuScreen> {
                 TtsService.speak('hello'); // amostra para calibrar de ouvido
                 setState(() {});
               }),
-              const Spacer(),
+              const SizedBox(height: 22),
+              // O botão-herói do mockup: dourado, chamando pra MISSÃO.
               SizedBox(
-                width: 240,
-                height: 60,
-                child: FilledButton(
+                width: 300,
+                height: 58,
+                child: FilledButton.icon(
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E5FF),
-                    foregroundColor: const Color(0xFF070B14),
+                    backgroundColor: const Color(0xFFFFC93C),
+                    foregroundColor: const Color(0xFF201505),
+                    elevation: 6,
+                    shadowColor: const Color(0x88FFC93C),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                   ),
                   onPressed: _play,
-                  child: const Text(
-                    'JOGAR',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 6,
+                  icon: const Icon(Icons.play_arrow_rounded, size: 28),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'INICIAR MISSÃO',
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2,
+                      ),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               const Text(
-                'Digite as palavras para destruir os inimigos\nantes que alcancem sua nave.',
+                'Cada inimigo destruído adiciona uma nova\npalavra ao seu vocabulário.',
                 textAlign: TextAlign.center,
                 // Cinza bem claro + sombra: legível sobre a arte de fundo.
                 style: TextStyle(
@@ -245,9 +250,10 @@ class _MenuScreenState extends State<MenuScreen> {
                   shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
                 ),
               ),
-              const Spacer(flex: 2),
             ],
           ),
+                ),
+              ),
         ),
       ),
           // Links das páginas do site (AdSense pede privacidade acessível).
@@ -914,56 +920,211 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  /// Barra de progresso do vocabulário — gamificação central do mockup:
+  /// blocos segmentados, sempre com um marco alcançável à vista.
+  Widget _vocabBar() {
+    final mastered = ProgressService.masteredCount;
+    final goal = ProgressService.nextVocabGoal(mastered);
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 26),
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
+      decoration: BoxDecoration(
+        color: const Color(0xD910162A),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2A3350)),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'VOCABULÁRIO',
+            style: TextStyle(
+              color: Color(0xFF00E5FF),
+              fontSize: 11,
+              letterSpacing: 3,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 12,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _SegmentBarPainter(
+                  fill: (mastered / goal).clamp(0.0, 1.0)),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: '$mastered',
+                  style: const TextStyle(
+                    color: Color(0xFF00E5FF),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                TextSpan(text: ' / $goal palavras dominadas'),
+              ],
+            ),
+            style: const TextStyle(color: Color(0xFF9AA3BC), fontSize: 11.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// As 4 habilidades treinadas (cards do mockup): 2×2 no celular,
+  /// linha única em telas largas — o Wrap resolve sozinho.
+  Widget _skillsGrid() {
+    const skills = [
+      (Icons.keyboard, 'DIGITAÇÃO', 'Digite cada vez mais\nrápido e preciso.'),
+      (Icons.headphones, 'ESCUTA', 'Ouça a pronúncia\nde cada palavra.'),
+      (Icons.translate, 'TRADUÇÃO', 'Aprenda o significado\nenquanto joga.'),
+      (Icons.psychology, 'MEMÓRIA', 'A repetição grava\no vocabulário.'),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: [
+        for (final (icon, title, desc) in skills)
+          Container(
+            width: 150,
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xD910162A),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFF14505C)),
+            ),
+            child: Column(
+              children: [
+                Icon(icon, color: const Color(0xFF00E5FF), size: 26),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF00E5FF),
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  desc,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF9AA3BC),
+                    fontSize: 9.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Painel único de estatísticas (mockup): pontuação, dominadas,
+  /// precisão vitalícia e sequência de dias.
+  Widget _statsPanel() {
+    final accuracy = (ProgressService.lifetimeAccuracy * 100).round();
+    final streak = ProgressService.streakDays;
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 26),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xD910162A),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2A3350)),
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          children: [
+            _stat('MAIOR PONTUAÇÃO', '${ProgressService.bestScore}'),
+            _statDivider(),
+            _stat('DOMINADAS', '${ProgressService.masteredCount}'),
+            _statDivider(),
+            _stat('PRECISÃO', '$accuracy%'),
+            _statDivider(),
+            _stat('SEQUÊNCIA', streak > 0 ? '$streak dias' : '—'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statDivider() => Container(
+        width: 1,
+        height: 34,
+        color: const Color(0xFF2A3350),
+      );
+
   Widget _difficultyCard(Difficulty difficulty) {
     final selected = difficulty == _difficulty;
+    final accent = difficulty.accent;
     return GestureDetector(
       onTap: () => _selectDifficulty(difficulty),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.symmetric(horizontal: 5),
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF0E2A33) : const Color(0xFF10162A),
+          color: selected
+              ? Color.lerp(const Color(0xFF10162A), accent, 0.16)
+              : const Color(0xFF10162A),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color:
-                selected ? const Color(0xFF00E5FF) : const Color(0xFF2A3350),
+            color: selected ? accent : const Color(0xFF2A3350),
             width: selected ? 2 : 1,
           ),
           boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF00E5FF).withValues(alpha: 0.25),
-                    blurRadius: 16,
-                  ),
-                ]
+              ? [BoxShadow(color: accent.withValues(alpha: 0.30), blurRadius: 16)]
               : const [],
         ),
         child: Column(
           children: [
+            // Insígnia da patente, desenhada por código.
+            SizedBox(
+              width: 38,
+              height: 26,
+              child: CustomPaint(
+                painter: _InsigniaPainter(difficulty, selected: selected),
+              ),
+            ),
+            const SizedBox(height: 6),
             FittedBox(
               fit: BoxFit.scaleDown,
               child: Text(
                 difficulty.label,
                 maxLines: 1,
                 style: TextStyle(
-                  color: selected ? const Color(0xFF00E5FF) : Colors.white,
+                  color: selected ? accent : Colors.white,
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 0.5,
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              difficulty.description,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Color(0xFF8A93B2),
-                fontSize: 10,
-                height: 1.3,
+            const SizedBox(height: 7),
+            for (final perk in difficulty.perks)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    perk,
+                    maxLines: 1,
+                    style: const TextStyle(
+                      color: Color(0xFF9AA3BC),
+                      fontSize: 9.5,
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ),
       ),
@@ -997,6 +1158,163 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
     );
   }
+}
+
+/// Título em texto — o fallback de sempre, caso o logo.png não carregue.
+class _TextLogo extends StatelessWidget {
+  const _TextLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'WORD',
+            maxLines: 1,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 48,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 12,
+              height: 0.9,
+            ),
+          ),
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'BLASTER',
+            maxLines: 1,
+            style: TextStyle(
+              color: Color(0xFF00E5FF),
+              fontSize: 48,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 12,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Barra de progresso segmentada em blocos (estilo mockup): preenchidos em
+/// ciano com brilho, vazios em cinza escuro.
+class _SegmentBarPainter extends CustomPainter {
+  final double fill;
+
+  const _SegmentBarPainter({required this.fill});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const gap = 3.0;
+    const count = 20;
+    final blockW = (size.width - gap * (count - 1)) / count;
+    final filled = (fill * count).round();
+    for (var i = 0; i < count; i++) {
+      final rect = RRect.fromRectAndRadius(
+        Rect.fromLTWH(i * (blockW + gap), 0, blockW, size.height),
+        const Radius.circular(2.5),
+      );
+      if (i < filled) {
+        canvas.drawRRect(
+          rect,
+          Paint()
+            ..color = const Color(0x5500E5FF)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+        );
+        canvas.drawRRect(rect, Paint()..color = const Color(0xFF00CFE8));
+      } else {
+        canvas.drawRRect(rect, Paint()..color = const Color(0xFF23293E));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SegmentBarPainter old) => old.fill != fill;
+}
+
+/// Insígnias das patentes, desenhadas por código no estilo do jogo:
+/// RECRUTA = capacete · SOLDADO = divisas (chevrons) · COMANDANTE =
+/// estrela com asas.
+class _InsigniaPainter extends CustomPainter {
+  final Difficulty difficulty;
+  final bool selected;
+
+  const _InsigniaPainter(this.difficulty, {required this.selected});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final color = selected
+        ? difficulty.accent
+        : Color.lerp(difficulty.accent, const Color(0xFF8A93B2), 0.35)!;
+    final paint = Paint()..color = color;
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.4
+      ..strokeCap = StrokeCap.round;
+
+    switch (difficulty) {
+      case Difficulty.beginner:
+        // Capacete: domo + aba.
+        final dome = Path()
+          ..moveTo(w * 0.18, h * 0.62)
+          ..quadraticBezierTo(w * 0.5, h * -0.25, w * 0.82, h * 0.62)
+          ..close();
+        canvas.drawPath(dome, paint);
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(w * 0.08, h * 0.60, w * 0.84, h * 0.16),
+            const Radius.circular(2),
+          ),
+          paint,
+        );
+      case Difficulty.intermediate:
+        // Três divisas (chevrons) empilhadas.
+        for (var i = 0; i < 3; i++) {
+          final top = h * (0.12 + i * 0.30);
+          final chevron = Path()
+            ..moveTo(w * 0.22, top + h * 0.16)
+            ..lineTo(w * 0.5, top)
+            ..lineTo(w * 0.78, top + h * 0.16);
+          canvas.drawPath(chevron, stroke);
+        }
+      case Difficulty.fluent:
+        // Estrela central com asas.
+        canvas.drawLine(
+            Offset(w * 0.02, h * 0.5), Offset(w * 0.30, h * 0.5), stroke);
+        canvas.drawLine(
+            Offset(w * 0.70, h * 0.5), Offset(w * 0.98, h * 0.5), stroke);
+        canvas.drawLine(
+            Offset(w * 0.06, h * 0.72), Offset(w * 0.26, h * 0.66), stroke);
+        canvas.drawLine(
+            Offset(w * 0.74, h * 0.66), Offset(w * 0.94, h * 0.72), stroke);
+        final star = Path();
+        final c = Offset(w * 0.5, h * 0.5);
+        final r = h * 0.48;
+        for (var i = 0; i < 5; i++) {
+          final aOut = -pi / 2 + i * 2 * pi / 5;
+          final aIn = aOut + pi / 5;
+          final pOut = Offset(c.dx + cos(aOut) * r, c.dy + sin(aOut) * r);
+          final pIn = Offset(
+              c.dx + cos(aIn) * r * 0.45, c.dy + sin(aIn) * r * 0.45);
+          i == 0 ? star.moveTo(pOut.dx, pOut.dy) : star.lineTo(pOut.dx, pOut.dy);
+          star.lineTo(pIn.dx, pIn.dy);
+        }
+        star.close();
+        canvas.drawPath(star, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _InsigniaPainter old) =>
+      old.difficulty != difficulty || old.selected != selected;
 }
 
 /// Banner AdMob no rodapé do menu. Só existe no celular; em web/desktop (ou

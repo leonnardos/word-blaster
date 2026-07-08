@@ -53,6 +53,39 @@ void main() {
     expect(b2.any((w) => w.en == 'dog'), isTrue);
   });
 
+  test('barra de vocabulário: sempre há um marco alcançável à vista', () {
+    expect(ProgressService.nextVocabGoal(0), 50);
+    expect(ProgressService.nextVocabGoal(49), 50);
+    expect(ProgressService.nextVocabGoal(50), 100, reason: 'marco batido avança');
+    expect(ProgressService.nextVocabGoal(250), 500);
+    expect(ProgressService.nextVocabGoal(999), 1001);
+    expect(ProgressService.nextVocabGoal(1001), 1001, reason: 'banco completo');
+  });
+
+  test('sequência de dias: hoje mantém, ontem soma, lacuna zera', () {
+    final now = DateTime(2026, 7, 8);
+    expect(
+      ProgressService.nextStreak(lastDay: null, current: 0, now: now),
+      1,
+      reason: 'primeira partida da vida',
+    );
+    expect(
+      ProgressService.nextStreak(lastDay: '2026-07-08', current: 3, now: now),
+      3,
+      reason: 'segunda partida no mesmo dia não soma',
+    );
+    expect(
+      ProgressService.nextStreak(lastDay: '2026-07-07', current: 3, now: now),
+      4,
+      reason: 'jogou ontem: sequência cresce',
+    );
+    expect(
+      ProgressService.nextStreak(lastDay: '2026-07-05', current: 9, now: now),
+      1,
+      reason: 'pulou um dia: recomeça',
+    );
+  });
+
   test('peso de repetição é limitado: razão máxima 6× entre extremos', () {
     // Sem teto apertado, meia dúzia de palavras erradas monopolizava o
     // sorteio e as dominadas sumiam (razão antiga chegava a 40×).

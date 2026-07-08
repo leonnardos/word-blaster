@@ -687,7 +687,13 @@ class WordBlasterGame extends FlameGame {
     }
     _enemies.clear();
     _setTarget(null);
-    ProgressService.saveRun(score: score.value, xp: runXp, words: runWords);
+    ProgressService.saveRun(
+      score: score.value,
+      xp: runXp,
+      words: runWords,
+      correct: _correctChars,
+      wrong: _wrongChars,
+    );
     overlays.add(overlayGameOver);
   }
 

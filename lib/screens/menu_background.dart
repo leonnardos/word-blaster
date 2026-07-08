@@ -65,15 +65,16 @@ class _ParticlesPainter extends CustomPainter {
   static final List<_Particle> _particles = () {
     final rnd = Random(11);
     return [
-      for (var i = 0; i < 16; i++)
+      // 30 partículas (o usuário pediu mais fogos subindo).
+      for (var i = 0; i < 30; i++)
         _Particle(
           x: rnd.nextDouble(),
           y: rnd.nextDouble(),
           laps: 1 + rnd.nextInt(2), // voltas por ciclo (velocidades variadas)
           drift: 0.008 + rnd.nextDouble() * 0.02,
           phase: rnd.nextDouble() * 2 * pi,
-          size: 1.0 + rnd.nextDouble() * 1.8,
-          smoke: i % 6 == 5, // 1 em 6 é fumaça
+          size: 1.0 + rnd.nextDouble() * 1.9,
+          smoke: i % 8 == 7, // fumaça continua rara: o pedido foi FOGO
         ),
     ];
   }();

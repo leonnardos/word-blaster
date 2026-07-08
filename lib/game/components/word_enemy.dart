@@ -61,9 +61,15 @@ class WordEnemy extends PositionComponent {
   bool get isHiddenNow => _hidden;
 
   /// Chamado pelo jogo a cada letra correta: acende a letra imediatamente.
+  /// ESPAÇOS são neutros (pedido do usuário): o avanço pula por cima deles
+  /// sozinho — "good morning" se digita "goodmorning" (ou com espaço, que
+  /// a tecla é ignorada pelo jogo; ver onTyped).
   void advanceTyped() {
     if (_typed < word.length) {
       _typed++;
+      while (_typed < word.length && word[_typed] == ' ') {
+        _typed++;
+      }
       _rebuildText();
     }
   }
@@ -159,7 +165,14 @@ class WordEnemy extends PositionComponent {
   void onBulletHit() {
     if (_dead) return;
     _hitFlash = 0.12;
-    if (_revealed < word.length) _revealed++;
+    if (_revealed < word.length) {
+      _revealed++;
+      // Balas são uma por LETRA: os espaços (neutros) contam de carona,
+      // senão a frase nunca somaria o total e não explodiria.
+      while (_revealed < word.length && word[_revealed] == ' ') {
+        _revealed++;
+      }
+    }
     if (_revealed >= word.length) {
       _dead = true;
       onDestroyed(this);

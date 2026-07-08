@@ -68,6 +68,33 @@ void main() {
         reason: 'a palavra deve ficar centralizada, sem o vão da tradução');
   });
 
+  test('espaço é neutro: avanço e balas pulam o espaço sozinhos', () {
+    var destroyed = false;
+    final enemy = WordEnemy(
+      wordData: const Word('good morning', 'bom dia'),
+      speed: 0,
+      position: Vector2(100, 100),
+      onDestroyed: (_) => destroyed = true,
+      onReachedBottom: (_) {},
+    )..bottomLimit = 500;
+
+    for (var i = 0; i < 4; i++) {
+      enemy.advanceTyped(); // g-o-o-d
+    }
+    expect(enemy.typed, 5, reason: 'depois de "good" pula o espaço sozinho');
+    for (var i = 0; i < 7; i++) {
+      enemy.advanceTyped(); // m-o-r-n-i-n-g
+    }
+    expect(enemy.typed, 'good morning'.length);
+
+    // 11 balas (uma por LETRA, nenhuma pelo espaço) destroem a frase.
+    for (var i = 0; i < 11; i++) {
+      enemy.onBulletHit();
+    }
+    expect(destroyed, isTrue,
+        reason: 'a contagem de balas dá carona ao espaço');
+  });
+
   test('letra acende na tecla (advanceTyped), sem depender da bala', () {
     final enemy = build(position: Vector2(100, 100));
     expect(enemy.typed, 0);

@@ -495,6 +495,10 @@ class WordBlasterGame extends FlameGame {
       return;
     }
     final char = raw.toLowerCase();
+    // Espaço é NEUTRO: as frases se digitam com ou sem ele ("goodmorning"
+    // = "good morning") e apertá-lo fora de hora não conta erro — o
+    // espaço nem aparece na tela, cobrá-lo era pegadinha injusta.
+    if (char == ' ') return;
 
     var target = _target;
     if (target == null || !target.isAlive || target.typed >= target.word.length) {

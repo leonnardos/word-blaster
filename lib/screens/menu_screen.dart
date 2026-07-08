@@ -124,7 +124,11 @@ class _MenuScreenState extends State<MenuScreen> {
                 final coverScale =
                     max(box.maxHeight / 1263.0, box.maxWidth / 842.0);
                 final logoGap = (255.0 * coverScale + 4).clamp(120.0, 260.0);
-                return Center(
+                // topCenter (não Center): centralizar verticalmente
+                // empurrava o conteúdo para baixo em janelas altas,
+                // abrindo um vão extra depois do logo.
+                return Align(
+                  alignment: Alignment.topCenter,
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 660),
                 // Sem barra de rolagem nas telas normais (pedido do

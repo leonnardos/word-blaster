@@ -58,6 +58,23 @@ class TtsService {
     } catch (_) {}
   }
 
+  static bool _unlocked = false;
+
+  /// iOS (Safari/Chrome = WebKit) BLOQUEIA a fala até a primeira chamada
+  /// vir de dentro de um toque do usuário — no jogo as falas nascem de
+  /// eventos (explosões), então o iPhone ficava mudo. Chamar isto no
+  /// toque do JOGAR destrava a sessão de fala para o resto do jogo.
+  static Future<void> warmUp() async {
+    if (_unlocked || !_ready) return;
+    _unlocked = true;
+    try {
+      await _tts.speak(' ').timeout(const Duration(seconds: 2));
+    } catch (_) {}
+    try {
+      await _tts.stop();
+    } catch (_) {}
+  }
+
   /// Escolhe a voz de inglês mais natural disponível, preferindo femininas.
   /// Cada plataforma tem nomes diferentes, então usa um ranking por pontos.
   static Future<void> _pickNaturalFemaleVoice() async {

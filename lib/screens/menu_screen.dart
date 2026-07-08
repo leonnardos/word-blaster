@@ -40,7 +40,9 @@ class _MenuScreenState extends State<MenuScreen> {
 
   Future<void> _play() async {
     // Gesto do usuário: destrava o autoplay do web E liga a trilha,
-    // que toca apenas durante o jogo ativo.
+    // que toca apenas durante o jogo ativo. No iOS também destrava a
+    // FALA (WebKit exige a 1ª fala dentro de um toque).
+    TtsService.warmUp();
     SoundService.setGameplay(true);
     await Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => GameScreen(difficulty: _difficulty)),

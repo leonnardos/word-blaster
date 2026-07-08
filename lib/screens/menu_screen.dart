@@ -89,26 +89,22 @@ class _MenuScreenState extends State<MenuScreen> {
           Image.asset(
             'assets/images/menu_bg2.jpg',
             fit: BoxFit.cover,
-            // topCenter: o LOGO faz parte da imagem — precisa ficar visível
-            // no topo em qualquer recorte de tela.
-            alignment: Alignment.topCenter,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
-          // Véu escuro FORTE (~75%) no corpo, mas LEVE no topo — o logo
-          // está pintado na imagem e precisa continuar vivo.
+          // Véu escuro FORTE (~75%): a arte vira clima, o foco é o menu.
+          // (O logo agora é uma FAIXA própria no fluxo, acima do véu.)
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0x26070B14),
+                  Color(0xB3070B14),
                   Color(0xBF070B14),
                   Color(0xD9070B14),
                 ],
-                stops: [0.0, 0.30, 1.0],
               ),
             ),
           ),
@@ -117,98 +113,98 @@ class _MenuScreenState extends State<MenuScreen> {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, box) {
-                // O logo está PINTADO no fundo (BoxFit.cover, topCenter):
-                // a altura RENDERIZADA dele depende da escala do cover —
-                // calcular certo evita o slogan invadir o logo. A imagem
-                // tem 842×1263 e o logo termina em y≈255.
-                final coverScale =
-                    max(box.maxHeight / 1263.0, box.maxWidth / 842.0);
-                final logoGap = (255.0 * coverScale + 4).clamp(120.0, 260.0);
-                // topCenter (não Center): centralizar verticalmente
-                // empurrava o conteúdo para baixo em janelas altas,
-                // abrindo um vão extra depois do logo.
-                return Align(
-                  alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 660),
-                // Sem barra de rolagem nas telas normais (pedido do
-                // usuário); o scroll fica só de rede de segurança para
-                // janelas muito baixas.
-                child: SingleChildScrollView(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                  child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+                // SEM rolagem quando cabe: a coluna é esticada à altura da
+                // tela e o spaceEvenly reparte a sobra IGUALMENTE entre os
+                // blocos (pedido do usuário). Em janelas muito baixas o
+                // scroll continua como rede de segurança.
+                return SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: box.maxHeight),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 660),
+                        child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              SizedBox(height: logoGap),
-              // Slogan do mockup: vendedor, não descritivo.
-              const Text(
-                'Aprenda inglês jogando.',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
-                ),
-              ),
-              const SizedBox(height: 2),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    'Digite mais rápido e memorize naturalmente.',
-                    maxLines: 1,
+              // FAIXA do logo (recorte da arte com fade na base): flui na
+              // coluna como widget normal — o slogan NUNCA sobrepõe, em
+              // qualquer tela/zoom (bug visto em celulares reais).
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Image.asset(
+                      'assets/images/logo_banner.png',
+                      fit: BoxFit.fitWidth,
+                      semanticLabel: 'Word Blaster',
+                      filterQuality: FilterQuality.high,
+                      isAntiAlias: true,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                  // Slogan do mockup: vendedor, não descritivo.
+                  const Text(
+                    'Aprenda inglês jogando.',
                     style: TextStyle(
-                      color: Color(0xFF00B8CC),
-                      fontSize: 11.5,
-                      letterSpacing: 1,
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
                       shadows: [
                         Shadow(color: Color(0xCC000000), blurRadius: 6)
                       ],
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              _vocabBar(),
-              const SizedBox(height: 11),
-              _skillsGrid(),
-              const SizedBox(height: 11),
-              _statsPanel(),
-              const SizedBox(height: 13),
-              const Text(
-                '★  ESCOLHA SUA PATENTE  ★',
-                style: TextStyle(
-                  color: Color(0xFF9AA3BC),
-                  fontSize: 11,
-                  letterSpacing: 3,
-                  shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: Difficulty.values
-                      .map((d) => Expanded(child: _difficultyCard(d)))
-                      .toList(),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  _settingsButton(),
-                  _top10Button(),
-                  ..._installButton(),
+                  const SizedBox(height: 2),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Digite mais rápido e memorize naturalmente.',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Color(0xFF00B8CC),
+                          fontSize: 11.5,
+                          letterSpacing: 1,
+                          shadows: [
+                            Shadow(color: Color(0xCC000000), blurRadius: 6)
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: 14),
+              _vocabBar(),
+              _skillsGrid(),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '★  ESCOLHA SUA PATENTE  ★',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      letterSpacing: 3,
+                      shadows: [
+                        Shadow(color: Color(0xCC000000), blurRadius: 6)
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: Difficulty.values
+                          .map((d) => Expanded(child: _difficultyCard(d)))
+                          .toList(),
+                    ),
+                  ),
+                ],
+              ),
               // O botão-herói no estilo da referência do usuário: placa de
               // OURO com moldura bronze escura e rebites nas pontas.
               // Hover (desktop): cresce e brilha mais.
@@ -295,15 +291,28 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 ),
               ),
-              const SizedBox(height: 10),
             ],
-          ),
-                ),
-              ),
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
       ),
+          // Troféu do TOP 10: fixo no topo esquerdo, na linha do logo.
+          Positioned(
+            left: 10,
+            top: 10,
+            child: SafeArea(child: _trophyFab()),
+          ),
+          // INSTALAR: fixo no topo direito (só navegador de celular,
+          // some quando o app já está instalado).
+          Positioned(
+            right: 10,
+            top: 10,
+            child: SafeArea(child: _installFab() ?? const SizedBox.shrink()),
+          ),
           // Links das páginas do site (AdSense pede privacidade acessível).
           if (WebLinks.available)
             Positioned(
@@ -363,28 +372,10 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Botão único de AJUSTES: tópicos, nível e volumes moram numa folha
-  /// só — o menu principal fica limpo (feedback do usuário).
-  Widget _settingsButton() {
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        // Fundo escuro sólido: sem ele o botão sumia na arte do menu.
-        backgroundColor: const Color(0xE0141A2E),
-        foregroundColor: const Color(0xFFAAB4CE),
-        side: const BorderSide(color: Color(0xFF3A4568)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      ),
-      icon: const Icon(Icons.tune, size: 16),
-      label: const Text('AJUSTES',
-          style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
-      onPressed: _openSettingsSheet,
-    );
-  }
-
-  /// Folha de ajustes: tópicos e nível (abrem as folhas próprias) +
-  /// volumes de música e pronúncia.
-  Future<void> _openSettingsSheet() async {
+  /// Popup da PATENTE (nova lógica dos ajustes, pedido do usuário):
+  /// tocar num card de patente seleciona E abre esta folha com nível
+  /// das palavras, tópicos e volumes. Fecha no X ou tocando fora.
+  Future<void> _openRankSheet(Difficulty difficulty) async {
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: const Color(0xFF10162A),
@@ -393,19 +384,35 @@ class _MenuScreenState extends State<MenuScreen> {
       ),
       builder: (context) => StatefulBuilder(
         builder: (context, setSheet) => Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'AJUSTES',
-                style: TextStyle(
-                  color: Color(0xFF9AA3BC),
-                  fontSize: 12,
-                  letterSpacing: 3,
-                ),
+              // Título com a cor da patente + botão X (mais bonito que só
+              // o toque-fora, que continua funcionando).
+              Row(
+                children: [
+                  const SizedBox(width: 40),
+                  Expanded(
+                    child: Text(
+                      difficulty.label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: difficulty.accent,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close,
+                        color: Color(0xFF8A93B2), size: 22),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 4),
               ListTile(
                 dense: true,
                 leading: const Icon(Icons.category_outlined,
@@ -468,48 +475,57 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Botão FIXO "baixar": faz parte do menu (sem popup, sem "agora não")
-  /// e só existe no navegador do celular enquanto o app NÃO está
-  /// instalado — instalou, some sozinho (pedido do usuário: quem quiser
-  /// baixar sempre sabe onde achar, e ninguém é incomodado).
-  /// Lista vazia = sem botão (o Wrap nem reserva espaço).
-  List<Widget> _installButton() {
+  /// "INSTALAR" fixo no canto superior direito: sempre à vista enquanto
+  /// o app não está instalado — instalou, some sozinho. null = sem botão.
+  Widget? _installFab() {
     if (!InstallService.supported || InstallService.isStandalone) {
-      return const [];
+      return null;
     }
     final isIos = defaultTargetPlatform == TargetPlatform.iOS;
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-    if (!isIos && !isAndroid) return const [];
+    if (!isIos && !isAndroid) return null;
     // Android sem beforeinstallprompt = já instalado (ou o Chrome ainda
     // não liberou): sem sinal confiável, o botão não aparece — os
     // rechecks de 3s/8s do initState pegam o prompt que chega depois.
-    if (isAndroid && !InstallService.hasPrompt) return const [];
+    if (isAndroid && !InstallService.hasPrompt) return null;
 
-    return [
-      OutlinedButton.icon(
-        style: OutlinedButton.styleFrom(
-          backgroundColor: const Color(0xE0141A2E),
-          foregroundColor: const Color(0xFF00E5FF),
-          side: const BorderSide(color: Color(0xFF14505C)),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+    return GestureDetector(
+      onTap: () {
+        if (isIos) {
+          _openIosInstallSheet();
+        } else {
+          InstallService.promptInstall();
+          // O prompt nativo consumiu o evento: reavalia o botão (se o
+          // jogador instalar, o modo standalone o esconde nas próximas).
+          setState(() {});
+        }
+      },
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xE0141A2E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF14505C)),
         ),
-        icon: const Icon(Icons.download_rounded, size: 16),
-        label: const Text('BAIXAR',
-            style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
-        onPressed: () {
-          if (isIos) {
-            _openIosInstallSheet();
-          } else {
-            InstallService.promptInstall();
-            // O prompt nativo consumiu o evento: reavalia o botão (se o
-            // jogador instalar, o modo standalone o esconde nas próximas).
-            setState(() {});
-          }
-        },
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.install_mobile, color: Color(0xFF00E5FF), size: 17),
+            SizedBox(width: 7),
+            Text(
+              'INSTALAR',
+              style: TextStyle(
+                color: Color(0xFF00E5FF),
+                fontSize: 11.5,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
       ),
-    ];
+    );
   }
 
   /// iPhone não tem prompt de instalação (WebKit): o botão abre o passo
@@ -721,19 +737,21 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _top10Button() {
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: const Color(0xE0141A2E),
-        foregroundColor: const Color(0xFFFFC93C),
-        side: const BorderSide(color: Color(0xFF5C4A16)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+  /// Troféu fixo no canto superior esquerdo: abre o TOP 10.
+  Widget _trophyFab() {
+    return GestureDetector(
+      onTap: _openTop10Sheet,
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: const Color(0xE0141A2E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF5C4A16)),
+        ),
+        child: const Icon(Icons.emoji_events,
+            color: Color(0xFFFFC93C), size: 22),
       ),
-      icon: const Icon(Icons.emoji_events_outlined, size: 16),
-      label: const Text('TOP 10',
-          style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
-      onPressed: _openTop10Sheet,
     );
   }
 
@@ -1084,6 +1102,31 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
             style: const TextStyle(color: Color(0xFF9AA3BC), fontSize: 11.5),
           ),
+          // Estatísticas no MESMO card (pedido do usuário: economiza um
+          // card inteiro de espaço).
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 9),
+            child: Divider(color: Color(0xFF2A3350), height: 1),
+          ),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              children: [
+                _stat('MAIOR PONTUAÇÃO', '${ProgressService.bestScore}'),
+                _statDivider(),
+                _stat('DOMINADAS', '${ProgressService.masteredCount}'),
+                _statDivider(),
+                _stat('PRECISÃO',
+                    '${(ProgressService.lifetimeAccuracy * 100).round()}%'),
+                _statDivider(),
+                _stat(
+                    'SEQUÊNCIA',
+                    ProgressService.streakDays > 0
+                        ? '${ProgressService.streakDays} dias'
+                        : '—'),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1099,11 +1142,12 @@ class _MenuScreenState extends State<MenuScreen> {
       (Icons.psychology, 'MEMÓRIA'),
     ];
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Text(
-          'BENEFÍCIOS',
+          '★  BENEFÍCIOS  ★',
           style: TextStyle(
-            color: Color(0xFF9AA3BC),
+            color: Colors.white,
             fontSize: 11,
             letterSpacing: 3,
             shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
@@ -1150,36 +1194,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Painel único de estatísticas (mockup): pontuação, dominadas,
-  /// precisão vitalícia e sequência de dias.
-  Widget _statsPanel() {
-    final accuracy = (ProgressService.lifetimeAccuracy * 100).round();
-    final streak = ProgressService.streakDays;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 26),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xD910162A),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF2A3350)),
-      ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        child: Row(
-          children: [
-            _stat('MAIOR PONTUAÇÃO', '${ProgressService.bestScore}'),
-            _statDivider(),
-            _stat('DOMINADAS', '${ProgressService.masteredCount}'),
-            _statDivider(),
-            _stat('PRECISÃO', '$accuracy%'),
-            _statDivider(),
-            _stat('SEQUÊNCIA', streak > 0 ? '$streak dias' : '—'),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _statDivider() => Container(
         width: 1,
         height: 34,
@@ -1206,7 +1220,12 @@ class _MenuScreenState extends State<MenuScreen> {
     final selected = difficulty == _difficulty;
     final accent = difficulty.accent;
     return GestureDetector(
-      onTap: () => _selectDifficulty(difficulty),
+      // Seleciona a patente E abre o popup de ajustes dela (nível das
+      // palavras, tópicos e volumes) — nova lógica pedida pelo usuário.
+      onTap: () {
+        _selectDifficulty(difficulty);
+        _openRankSheet(difficulty);
+      },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         margin: const EdgeInsets.symmetric(horizontal: 5),

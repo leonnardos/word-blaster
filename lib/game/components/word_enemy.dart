@@ -3,12 +3,14 @@ import 'package:flutter/painting.dart';
 
 import '../../data/word_bank.dart';
 import '../../services/progress_service.dart';
+import 'enemy_vehicle.dart';
 
-/// Inimigo-palavra que desce em direção à nave.
+/// Inimigo-palavra que desce em direção à nave — um VEÍCULO inimigo
+/// (jipe/blindado/tanque, conforme o tamanho da palavra) com a placa da
+/// palavra logo abaixo. Cada tiro certeiro chamusca o casco até explodir.
 ///
-/// Mostra a palavra em inglês (alvo de digitação) e a tradução em PT-BR
-/// menor logo abaixo — assim o jogador aprende o significado enquanto atira.
-/// A parte já digitada acende em ciano; o restante fica branco.
+/// A placa mostra a palavra em inglês (alvo de digitação) e a tradução
+/// PT-BR menor — a parte já digitada acende em ciano.
 class WordEnemy extends PositionComponent {
   final Word wordData;
   final double speed;
@@ -38,6 +40,12 @@ class WordEnemy extends PositionComponent {
   late TextPainter _ptPainter;
   bool _showPt = true;
   double _bottomLimit = double.infinity;
+  double _plateWidth = 0;
+  double _plateHeight = 0;
+
+  /// 0 = jipe (palavra curta), 1 = blindado (média), 2 = tanque (longa
+  /// ou frase) — determinístico por palavra.
+  late final int vehicleKind;
 
   WordEnemy({
     required this.wordData,
@@ -47,6 +55,12 @@ class WordEnemy extends PositionComponent {
     required this.onReachedBottom,
     this.homingTarget,
   }) : super(position: position, anchor: Anchor.center) {
+    final en = wordData.en;
+    vehicleKind = (en.contains(' ') || en.length >= 8)
+        ? 2
+        : en.length >= 5
+            ? 1
+            : 0;
     _rebuildText();
   }
 
@@ -153,7 +167,13 @@ class WordEnemy extends PositionComponent {
 
     final textWidth =
         _enPainter.width > _ptPainter.width ? _enPainter.width : _ptPainter.width;
-    size = Vector2(textWidth + 28, _contentHeight + 14);
+    _plateWidth = textWidth + 24;
+    _plateHeight = _contentHeight + 12;
+    final veh = enemyVehicleSize(vehicleKind);
+    size = Vector2(
+      _plateWidth > veh.width ? _plateWidth : veh.width,
+      veh.height + 3 + _plateHeight,
+    );
   }
 
   /// Altura real do conteúdo: só a palavra, ou palavra + tradução.
@@ -210,15 +230,58 @@ class WordEnemy extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    final rect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, size.x, size.y),
-      const Radius.circular(10),
+    final veh = enemyVehicleSize(vehicleKind);
+    final vehX = (size.x - veh.width) / 2;
+
+    // Mira travada: anel ciano sob o veículo (o alvo é ELE).
+    if (isTargeted) {
+      canvas.drawCircle(
+        Offset(size.x / 2, veh.height * 0.5),
+        veh.width * 0.62,
+        Paint()
+          ..color = const Color(0xFF00E5FF).withValues(alpha: 0.35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+      );
+    }
+
+    // O veículo descendo, chamuscando conforme apanha dos tiros.
+    canvas.save();
+    canvas.translate(vehX, 0);
+    drawEnemyVehicle(
+      canvas,
+      vehicleKind,
+      seed: word.hashCode,
+      damage: word.isEmpty ? 0 : _revealed / word.length,
+    );
+    canvas.restore();
+    // Erro tinge o veículo de vermelho por um instante.
+    if (_errorFlash > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(vehX, 0, veh.width, veh.height),
+          const Radius.circular(10),
+        ),
+        Paint()..color = const Color(0xFFFF2E2E).withValues(alpha: 0.25),
+      );
+    }
+
+    // Placa da palavra, logo abaixo do veículo.
+    final plateRect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        (size.x - _plateWidth) / 2,
+        veh.height + 3,
+        _plateWidth,
+        _plateHeight,
+      ),
+      const Radius.circular(9),
     );
 
     var bgColor = const Color(0xFF141A2E).withValues(alpha: 0.92);
     if (_errorFlash > 0) bgColor = const Color(0xFF7A1B2E);
     if (_hitFlash > 0) bgColor = const Color(0xFF1E3A50);
-    canvas.drawRRect(rect, Paint()..color = bgColor);
+    canvas.drawRRect(plateRect, Paint()..color = bgColor);
 
     final borderColor = isTargeted
         ? const Color(0xFF00E5FF)
@@ -233,12 +296,12 @@ class WordEnemy extends PositionComponent {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 5
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5);
-      canvas.drawRRect(rect, glow);
+      canvas.drawRRect(plateRect, glow);
     }
-    canvas.drawRRect(rect, border);
+    canvas.drawRRect(plateRect, border);
 
-    // Conteúdo centralizado verticalmente (com ou sem tradução).
-    final top = (size.y - _contentHeight) / 2;
+    // Conteúdo centralizado na placa (com ou sem tradução).
+    final top = veh.height + 3 + (_plateHeight - _contentHeight) / 2;
     final enX = (size.x - _enPainter.width) / 2;
     _enPainter.paint(canvas, Offset(enX, top));
     if (_showPt) {

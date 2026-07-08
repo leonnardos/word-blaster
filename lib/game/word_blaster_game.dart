@@ -224,6 +224,9 @@ class WordBlasterGame extends FlameGame {
     _wave = number;
     _waveRemaining = 8 + number % 3; // 8-10 palavras por onda
     _waveRest = -1;
+    // O mapa muda a cada 5 ondas: campo aberto ↔ estrada de guerra
+    // (transição suave dentro do Battlefield).
+    _battlefield.setScene(((number - 1) ~/ 5).isEven ? 0 : 1);
     // A primeira palavra da onda não pode demorar: adianta o relógio.
     // Exceto na emenda contínua (onda 50+), onde a cadência normal segue —
     // adiantar causaria uma rajada a cada troca de onda.

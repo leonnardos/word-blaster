@@ -11,6 +11,7 @@ import '../services/progress_service.dart';
 import '../services/ranking_service.dart';
 import '../services/sound_service.dart';
 import '../services/tts_service.dart';
+import '../services/web_links.dart';
 import '../version.dart';
 import 'game_screen.dart';
 import 'menu_background.dart';
@@ -245,6 +246,37 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ),
       ),
+          // Links das páginas do site (AdSense pede privacidade acessível).
+          if (WebLinks.available)
+            Positioned(
+              left: 10,
+              bottom: 6,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    onTap: () => WebLinks.open('como-jogar.html'),
+                    child: const Text(
+                      'como jogar',
+                      style:
+                          TextStyle(color: Color(0x805A6284), fontSize: 9),
+                    ),
+                  ),
+                  const Text(
+                    '  ·  ',
+                    style: TextStyle(color: Color(0x805A6284), fontSize: 9),
+                  ),
+                  GestureDetector(
+                    onTap: () => WebLinks.open('privacidade.html'),
+                    child: const Text(
+                      'privacidade',
+                      style:
+                          TextStyle(color: Color(0x805A6284), fontSize: 9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Positioned(
             right: 10,
             bottom: 6,

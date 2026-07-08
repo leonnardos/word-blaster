@@ -88,22 +88,26 @@ class _MenuScreenState extends State<MenuScreen> {
           Image.asset(
             'assets/images/menu_bg2.jpg',
             fit: BoxFit.cover,
+            // topCenter: o LOGO faz parte da imagem — precisa ficar visível
+            // no topo em qualquer recorte de tela.
+            alignment: Alignment.topCenter,
             filterQuality: FilterQuality.high,
             isAntiAlias: true,
             errorBuilder: (_, __, ___) => const SizedBox.shrink(),
           ),
-          // Véu escuro FORTE (~75%): a arte vira clima, o foco é o menu
-          // (direção do mockup do usuário).
+          // Véu escuro FORTE (~75%) no corpo, mas LEVE no topo — o logo
+          // está pintado na imagem e precisa continuar vivo.
           const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Color(0xCC070B14),
+                  Color(0x26070B14),
                   Color(0xBF070B14),
                   Color(0xD9070B14),
                 ],
+                stops: [0.0, 0.30, 1.0],
               ),
             ),
           ),
@@ -121,19 +125,12 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo do usuário (asas militares + estrelas); sem o arquivo,
-              // cai no título em texto de sempre.
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 34),
-                child: Image.asset(
-                  'assets/images/logo.png',
-                  semanticLabel: 'Word Blaster',
-                  filterQuality: FilterQuality.high,
-                  isAntiAlias: true,
-                  errorBuilder: (_, __, ___) => const _TextLogo(),
-                ),
+              // O logo vem PINTADO na imagem de fundo (combinada pelo
+              // usuário): este vão faz o conteúdo começar logo abaixo dele.
+              SizedBox(
+                height: (MediaQuery.of(context).size.height * 0.17)
+                    .clamp(110.0, 195.0),
               ),
-              const SizedBox(height: 12),
               // Slogan do mockup: vendedor, não descritivo.
               const Text(
                 'Aprenda inglês jogando.',
@@ -188,54 +185,90 @@ class _MenuScreenState extends State<MenuScreen> {
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
                 children: [
-                  _topicsButton(),
-                  _cefrButton(),
+                  _settingsButton(),
                   _top10Button(),
                   ..._installButton(),
                 ],
               ),
-              const SizedBox(height: 14),
-              _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
-                await ProgressService.saveMusicVolume(v);
-                SoundService.syncMusic();
-                setState(() {});
-              }),
-              const SizedBox(height: 6),
-              _volumeRow('PRONÚNCIA', ProgressService.voiceVolume, (v) async {
-                await ProgressService.saveVoiceVolume(v);
-                await TtsService.applyVolume();
-                TtsService.speak('hello'); // amostra para calibrar de ouvido
-                setState(() {});
-              }),
               const SizedBox(height: 22),
-              // O botão-herói do mockup: dourado, chamando pra MISSÃO.
-              SizedBox(
-                width: 300,
-                height: 58,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFC93C),
-                    foregroundColor: const Color(0xFF201505),
-                    elevation: 6,
-                    shadowColor: const Color(0x88FFC93C),
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _play,
-                  icon: const Icon(Icons.play_arrow_rounded, size: 28),
-                  label: const FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'INICIAR MISSÃO',
-                      maxLines: 1,
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 2,
+              // O botão-herói no estilo da referência do usuário: placa de
+              // OURO com moldura bronze escura e rebites nas pontas.
+              GestureDetector(
+                onTap: _play,
+                child: Container(
+                  width: 312,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF241708),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(color: const Color(0xFF0F0A04)),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0x55FFC93C), blurRadius: 24),
+                      BoxShadow(
+                        color: Color(0x99000000),
+                        blurRadius: 8,
+                        offset: Offset(0, 3),
                       ),
-                    ),
+                    ],
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
+                  child: Row(
+                    children: [
+                      _rivets(),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Color(0xFFFFE082),
+                                Color(0xFFFFC93C),
+                                Color(0xFFD9971C),
+                              ],
+                              stops: [0.0, 0.45, 1.0],
+                            ),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: const Color(0xFF6B4A12), width: 1.2),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.play_arrow_rounded,
+                                  color: Color(0xFF15100A), size: 30),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    'INICIAR MISSÃO',
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: const Color(0xFF15100A),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 2,
+                                      shadows: [
+                                        Shadow(
+                                          color: const Color(0xFFFFE9A8)
+                                              .withValues(alpha: 0.6),
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      _rivets(),
+                    ],
                   ),
                 ),
               ),
@@ -315,9 +348,9 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _topicsButton() {
-    final count = ProgressService.selectedTopics.length;
-    final label = count == 0 ? 'TÓPICOS: TODOS' : 'TÓPICOS: $count';
+  /// Botão único de AJUSTES: tópicos, nível e volumes moram numa folha
+  /// só — o menu principal fica limpo (feedback do usuário).
+  Widget _settingsButton() {
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
         // Fundo escuro sólido: sem ele o botão sumia na arte do menu.
@@ -327,10 +360,96 @@ class _MenuScreenState extends State<MenuScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
       ),
-      icon: const Icon(Icons.category_outlined, size: 16),
-      label: Text(label,
-          style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
-      onPressed: _openTopicsSheet,
+      icon: const Icon(Icons.tune, size: 16),
+      label: const Text('AJUSTES',
+          style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
+      onPressed: _openSettingsSheet,
+    );
+  }
+
+  /// Folha de ajustes: tópicos e nível (abrem as folhas próprias) +
+  /// volumes de música e pronúncia.
+  Future<void> _openSettingsSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF10162A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheet) => Padding(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'AJUSTES',
+                style: TextStyle(
+                  color: Color(0xFF9AA3BC),
+                  fontSize: 12,
+                  letterSpacing: 3,
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.category_outlined,
+                    color: Color(0xFFAAB4CE), size: 20),
+                title: const Text('Tópicos',
+                    style:
+                        TextStyle(color: Color(0xFFE8ECF0), fontSize: 14)),
+                trailing: Text(
+                  ProgressService.selectedTopics.isEmpty
+                      ? 'todos  ›'
+                      : '${ProgressService.selectedTopics.length}  ›',
+                  style: const TextStyle(
+                      color: Color(0xFF8A93B2), fontSize: 13),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openTopicsSheet();
+                },
+              ),
+              ListTile(
+                dense: true,
+                leading: const Icon(Icons.school_outlined,
+                    color: Color(0xFFAAB4CE), size: 20),
+                title: const Text('Nível das palavras',
+                    style:
+                        TextStyle(color: Color(0xFFE8ECF0), fontSize: 14)),
+                trailing: Text(
+                  ProgressService.maxCefr == 'C2'
+                      ? 'todos  ›'
+                      : 'até ${ProgressService.maxCefr}  ›',
+                  style: const TextStyle(
+                      color: Color(0xFF8A93B2), fontSize: 13),
+                ),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openCefrSheet();
+                },
+              ),
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Divider(color: Color(0xFF2A3350), height: 1),
+              ),
+              _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
+                await ProgressService.saveMusicVolume(v);
+                SoundService.syncMusic();
+                setSheet(() {});
+              }),
+              const SizedBox(height: 6),
+              _volumeRow('PRONÚNCIA', ProgressService.voiceVolume,
+                  (v) async {
+                await ProgressService.saveVoiceVolume(v);
+                await TtsService.applyVolume();
+                TtsService.speak('hello'); // amostra para calibrar de ouvido
+                setSheet(() {});
+              }),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -449,25 +568,6 @@ class _MenuScreenState extends State<MenuScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  /// Escada CEFR acumulativa: escolher B1 treina A1+A2+B1.
-  Widget _cefrButton() {
-    final max = ProgressService.maxCefr;
-    final label = max == 'C2' ? 'NÍVEL: TODOS' : 'NÍVEL: ATÉ $max';
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        backgroundColor: const Color(0xE0141A2E),
-        foregroundColor: const Color(0xFFAAB4CE),
-        side: const BorderSide(color: Color(0xFF3A4568)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-      ),
-      icon: const Icon(Icons.school_outlined, size: 16),
-      label: Text(label,
-          style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
-      onPressed: _openCefrSheet,
     );
   }
 
@@ -974,55 +1074,63 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// As 4 habilidades treinadas (cards do mockup): 2×2 no celular,
-  /// linha única em telas largas — o Wrap resolve sozinho.
+  /// BENEFÍCIOS: só ícone + título (descrições saíram — no celular
+  /// esticavam demais, feedback do usuário). Cabem os 4 numa linha.
   Widget _skillsGrid() {
     const skills = [
-      (Icons.keyboard, 'DIGITAÇÃO', 'Digite cada vez mais\nrápido e preciso.'),
-      (Icons.headphones, 'ESCUTA', 'Ouça a pronúncia\nde cada palavra.'),
-      (Icons.translate, 'TRADUÇÃO', 'Aprenda o significado\nenquanto joga.'),
-      (Icons.psychology, 'MEMÓRIA', 'A repetição grava\no vocabulário.'),
+      (Icons.keyboard, 'DIGITAÇÃO'),
+      (Icons.headphones, 'ESCUTA'),
+      (Icons.translate, 'TRADUÇÃO'),
+      (Icons.psychology, 'MEMÓRIA'),
     ];
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
+    return Column(
       children: [
-        for (final (icon, title, desc) in skills)
-          Container(
-            width: 150,
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xD910162A),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFF14505C)),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, color: const Color(0xFF00E5FF), size: 26),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color(0xFF00E5FF),
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  desc,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF9AA3BC),
-                    fontSize: 9.5,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
+        const Text(
+          'BENEFÍCIOS',
+          style: TextStyle(
+            color: Color(0xFF9AA3BC),
+            fontSize: 11,
+            letterSpacing: 3,
+            shadows: [Shadow(color: Color(0xCC000000), blurRadius: 6)],
           ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          alignment: WrapAlignment.center,
+          children: [
+            for (final (icon, title) in skills)
+              Container(
+                width: 80,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xD910162A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF14505C)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(icon, color: const Color(0xFF00E5FF), size: 24),
+                    const SizedBox(height: 6),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Color(0xFF00E5FF),
+                          fontSize: 9.5,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -1061,6 +1169,22 @@ class _MenuScreenState extends State<MenuScreen> {
         width: 1,
         height: 34,
         color: const Color(0xFF2A3350),
+      );
+
+  /// Coluna de rebites da moldura do botão dourado.
+  Widget _rivets() => Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          for (var i = 0; i < 3; i++)
+            Container(
+              width: 4,
+              height: 4,
+              decoration: const BoxDecoration(
+                color: Color(0xFF8A6A2F),
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
       );
 
   Widget _difficultyCard(Difficulty difficulty) {
@@ -1156,47 +1280,6 @@ class _MenuScreenState extends State<MenuScreen> {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Título em texto — o fallback de sempre, caso o logo.png não carregue.
-class _TextLogo extends StatelessWidget {
-  const _TextLogo();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'WORD',
-            maxLines: 1,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 12,
-              height: 0.9,
-            ),
-          ),
-        ),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'BLASTER',
-            maxLines: 1,
-            style: TextStyle(
-              color: Color(0xFF00E5FF),
-              fontSize: 48,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 12,
-              height: 1.1,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

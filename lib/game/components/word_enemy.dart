@@ -168,15 +168,17 @@ class WordEnemy extends PositionComponent {
     _ptPainter = TextPainter(
       text: TextSpan(
         text: _showPt ? wordData.pt : '',
+        // SemiBold sem itálico: o itálico fino w400 ficava ilegível no
+        // celular (feedback do usuário — "as finas não dá pra ler").
         style: TextStyle(
           fontFamily: 'Exo2',
-          fontSize: hidden ? 13 : 12,
-          fontStyle: FontStyle.italic,
+          fontSize: hidden ? 13.5 : 12.5,
+          fontWeight: FontWeight.w600,
           color: hidden
               ? const Color(0xFFB9C2D8) // dica do recall: em destaque
               : mastery == Mastery.aprendendo
-                  ? const Color(0x668A93B2) // esmaecida: quase lá!
-                  : const Color(0xFF8A93B2),
+                  ? const Color(0x778A93B2) // esmaecida: quase lá!
+                  : const Color(0xFF98A2BE),
         ),
       ),
       textDirection: TextDirection.ltr,

@@ -229,19 +229,8 @@ class _MenuScreenState extends State<MenuScreen> {
                     color: const Color(0xFF241708),
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(color: const Color(0xFF0F0A04)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: _missionHover
-                            ? const Color(0x99FFD96A)
-                            : const Color(0x55FFC93C),
-                        blurRadius: _missionHover ? 34 : 24,
-                      ),
-                      const BoxShadow(
-                        color: Color(0x99000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
+                    // Sem o halo dourado (pedido do usuário) — o relevo
+                    // fica por conta da moldura; o hover cresce e clareia.
                   ),
                   padding:
                       const EdgeInsets.symmetric(horizontal: 5, vertical: 5),

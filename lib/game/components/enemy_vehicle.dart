@@ -29,8 +29,9 @@ Size enemyVehicleSize(int kind) => switch (kind) {
     };
 
 /// Desenha o veículo com o canto superior esquerdo em (0,0).
+/// [phase] anima rodas/esteiras (avança com o movimento do veículo).
 void drawEnemyVehicle(Canvas canvas, int kind,
-    {required int seed, double damage = 0}) {
+    {required int seed, double damage = 0, double phase = 0}) {
   final s = enemyVehicleSize(kind);
   final w = s.width;
   final h = s.height;
@@ -48,14 +49,31 @@ void drawEnemyVehicle(Canvas canvas, int kind,
 
   switch (kind) {
     case 0:
-      _drawJeep(canvas, w, h);
+      _drawJeep(canvas, w, h, phase);
     case 1:
-      _drawApc(canvas, w, h);
+      _drawApc(canvas, w, h, phase);
     default:
-      _drawTank(canvas, w, h);
+      _drawTank(canvas, w, h, phase);
   }
 
   _drawDamage(canvas, w, h, seed: seed, damage: damage);
+}
+
+/// Gomos animados dentro de um pneu/esteira: linhas que correm para TRÁS
+/// (para cima) enquanto o veículo desce — rodas girando de verdade.
+void _drawRolling(Canvas canvas, RRect tire, double phase, double spacing) {
+  canvas.save();
+  canvas.clipRRect(tire);
+  final groove = Paint()
+    ..color = const Color(0xFF0F0C09)
+    ..strokeWidth = 1.4;
+  final rect = tire.outerRect;
+  final off = spacing - (phase % spacing);
+  for (var y = rect.top - spacing + off; y < rect.bottom + 1; y += spacing) {
+    canvas.drawLine(
+        Offset(rect.left + 1, y), Offset(rect.right - 1, y), groove);
+  }
+  canvas.restore();
 }
 
 Paint get _outlinePaint => Paint()
@@ -65,8 +83,8 @@ Paint get _outlinePaint => Paint()
 
 /// Jipe de assalto: capô na frente (embaixo), para-brisa inclinado e
 /// caçamba com carga atrás (em cima). Quatro pneus salientes.
-void _drawJeep(Canvas canvas, double w, double h) {
-  // Pneus (salientes nas laterais).
+void _drawJeep(Canvas canvas, double w, double h, double phase) {
+  // Pneus (salientes nas laterais), girando.
   final tire = Paint()..color = _track;
   for (final ty in [h * 0.18, h * 0.68]) {
     for (final tx in [1.0, w - 8]) {
@@ -75,6 +93,7 @@ void _drawJeep(Canvas canvas, double w, double h) {
         const Radius.circular(3),
       );
       canvas.drawRRect(r, tire);
+      _drawRolling(canvas, r, phase, 4.5);
       canvas.drawRRect(r, Paint()..color = _trackEdge..style = PaintingStyle.stroke..strokeWidth = 1);
     }
   }
@@ -127,8 +146,8 @@ void _drawJeep(Canvas canvas, double w, double h) {
 
 /// Blindado (APC): casco anguloso com nariz em bico na frente (embaixo),
 /// quatro rodas grandes e torreta pequena com metralhadora.
-void _drawApc(Canvas canvas, double w, double h) {
-  // Rodas.
+void _drawApc(Canvas canvas, double w, double h, double phase) {
+  // Rodas girando.
   final tire = Paint()..color = _track;
   for (final ty in [h * 0.14, h * 0.42, h * 0.68]) {
     for (final tx in [0.5, w - 8.5]) {
@@ -137,6 +156,7 @@ void _drawApc(Canvas canvas, double w, double h) {
         const Radius.circular(4),
       );
       canvas.drawRRect(r, tire);
+      _drawRolling(canvas, r, phase, 5.0);
       canvas.drawRRect(r, Paint()..color = _trackEdge..style = PaintingStyle.stroke..strokeWidth = 1);
     }
   }
@@ -176,20 +196,16 @@ void _drawApc(Canvas canvas, double w, double h) {
 
 /// Tanque pesado: esteiras largas, casco robusto, torreta grande com
 /// canhão comprido apontando para baixo (para o jogador!) e estrela.
-void _drawTank(Canvas canvas, double w, double h) {
-  // Esteiras.
+void _drawTank(Canvas canvas, double w, double h, double phase) {
+  // Esteiras girando.
   for (final tx in [0.0, w - 11]) {
     final r = RRect.fromRectAndRadius(
       Rect.fromLTWH(tx, 2, 11, h - 4),
       const Radius.circular(5),
     );
     canvas.drawRRect(r, Paint()..color = _track);
+    _drawRolling(canvas, r, phase, 6.0);
     canvas.drawRRect(r, Paint()..color = _trackEdge..style = PaintingStyle.stroke..strokeWidth = 1);
-    // Gomos.
-    final groove = Paint()..color = const Color(0xFF0F0C09)..strokeWidth = 1.4;
-    for (var y = 5.0; y < h - 4; y += 6) {
-      canvas.drawLine(Offset(tx + 1.5, y), Offset(tx + 9.5, y), groove);
-    }
   }
 
   // Casco.

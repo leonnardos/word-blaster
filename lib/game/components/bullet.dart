@@ -28,7 +28,7 @@ class Bullet extends PositionComponent {
       removeFromParent();
       return;
     }
-    final goal = target.absoluteCenter;
+    final goal = target.vehicleCenter; // mira no VEÍCULO, não na placa
     final delta = goal - position;
     final distance = delta.length;
     _angle = atan2(delta.x, -delta.y);

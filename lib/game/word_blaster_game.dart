@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:flame/components.dart';
 import 'package:flame/effects.dart';
@@ -13,6 +13,8 @@ import '../services/tts_service.dart';
 import 'difficulty.dart';
 import 'components/battlefield.dart';
 import 'components/bullet.dart';
+import 'components/enemy_trails.dart';
+import 'components/enemy_vehicle.dart';
 import 'components/explosion.dart';
 import 'components/player_tank.dart';
 import 'components/word_enemy.dart';
@@ -41,6 +43,7 @@ class WordBlasterGame extends FlameGame {
 
   late PlayerTank _tank;
   late Battlefield _battlefield;
+  late EnemyTrails _trails;
   final List<WordEnemy> _enemies = [];
   WordEnemy? _target;
 
@@ -214,6 +217,8 @@ class WordBlasterGame extends FlameGame {
   Future<void> onLoad() async {
     _battlefield = Battlefield();
     add(_battlefield);
+    _trails = EnemyTrails();
+    add(_trails); // acima do chão, abaixo de tanque e inimigos
     _tank = PlayerTank()..position = _tankHome;
     add(_tank);
     _startLevel(difficulty.startLevel, announce: true);
@@ -348,11 +353,11 @@ class WordBlasterGame extends FlameGame {
             ? _target
             : _watchTarget;
     if (aimTarget != null) {
-      _tank.aimAt(aimTarget.absoluteCenter);
+      _tank.aimAt(aimTarget.vehicleCenter);
       // Só solta a bala quando a torre está de fato apontada para a palavra.
       if (_shotQueue.isNotEmpty &&
           _shotCooldown <= 0 &&
-          _tank.aimError(aimTarget.absoluteCenter) < 0.12) {
+          _tank.aimError(aimTarget.vehicleCenter) < 0.12) {
         final enemy = _shotQueue.removeAt(0);
         _watchTarget = enemy;
         _leftBarrel = !_leftBarrel;
@@ -391,7 +396,10 @@ class WordBlasterGame extends FlameGame {
     final word = _pickWord();
     if (word == null) return false;
 
-    final estWidth = max(word.en.length, word.pt.length) * 13.0 + 28;
+    // Placa + vão dos pontinhos + veículo: o conjunto é mais largo agora.
+    final vehWidth = enemyVehicleSize(WordEnemy.kindFor(word.en)).width;
+    final estWidth =
+        max(word.en.length, word.pt.length) * 13.0 + 38 + vehWidth;
     final x = _pickSpawnX(estWidth);
     if (x == null) return false; // sem espaço livre agora
     // Escala 1-8 esticada: velocidade 8 = 51 px/s (a antiga nível 10).
@@ -406,6 +414,9 @@ class WordBlasterGame extends FlameGame {
       onDestroyed: _onEnemyDestroyed,
       onReachedBottom: _onEnemyReachedBottom,
       homingTarget: () => _tank.position,
+      // Placa sempre para o lado com mais espaço na tela.
+      plateOnLeft: x > size.x / 2,
+      dropTread: _trails.drop,
     )..bottomLimit = size.y - 160;
     _enemies.add(enemy);
     add(enemy);
@@ -612,7 +623,7 @@ class WordBlasterGame extends FlameGame {
   void _onEnemyDestroyed(WordEnemy enemy) {
     _rememberRecent(enemy.word);
     _enemies.remove(enemy);
-    add(buildFireExplosion(enemy.absoluteCenter));
+    add(buildFireExplosion(enemy.vehicleCenter));
     _shakeTime = _shakeDuration; // tremida só no estouro da palavra
     enemy.removeFromParent();
     // Pronúncia junto com a explosão: som + grafia + significado no mesmo
@@ -624,7 +635,7 @@ class WordBlasterGame extends FlameGame {
     _rememberRecent(enemy.word);
     _enemies.remove(enemy);
     // Maior que a de destruir: chegar no tanque é o impacto mais violento.
-    add(buildFireExplosion(enemy.absoluteCenter, scale: 1.35));
+    add(buildFireExplosion(enemy.vehicleCenter, scale: 1.35));
     // Palavra OCULTA que estourou sem ser digitada: revela na tela e
     // pronuncia — quem não sabia grava agora e tenta escrever na próxima
     // (pedido do usuário jogando no modo estudo).
@@ -643,11 +654,11 @@ class WordBlasterGame extends FlameGame {
   /// Mostra a palavra revelada subindo do ponto da explosão, em âmbar
   /// (a cor da ★ de dominada), e a pronuncia.
   void _revealMissedWord(WordEnemy enemy) {
-    final x = enemy.absoluteCenter.x.clamp(70.0, size.x - 70.0);
+    final x = enemy.vehicleCenter.x.clamp(70.0, size.x - 70.0);
     final reveal = TextComponent(
       text: enemy.word,
       anchor: Anchor.center,
-      position: Vector2(x, enemy.absoluteCenter.y - 46),
+      position: Vector2(x, enemy.vehicleCenter.y - 46),
       textRenderer: TextPaint(
         style: const TextStyle(
           fontFamily: 'Exo2',
@@ -671,7 +682,7 @@ class WordBlasterGame extends FlameGame {
     isOverNotifier.value = true;
     SoundService.setGameplay(false); // silêncio no cartão de resultado
     for (final enemy in List.of(_enemies)) {
-      add(buildFireExplosion(enemy.absoluteCenter, scale: 1.2));
+      add(buildFireExplosion(enemy.vehicleCenter, scale: 1.2));
       enemy.removeFromParent();
     }
     _enemies.clear();
@@ -707,6 +718,7 @@ class WordBlasterGame extends FlameGame {
     _watchTarget = null;
     _recentWords.clear();
     _seenThisRun.clear();
+    _trails.clear();
     _isGameOver = false;
     isOverNotifier.value = false;
     _tank.aimStraightUp();

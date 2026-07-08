@@ -213,14 +213,14 @@ class _MenuScreenState extends State<MenuScreen> {
                           .toList(),
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 14),
                 ],
               ),
               // O botão-herói no estilo da referência do usuário: placa de
               // OURO com moldura bronze escura e rebites nas pontas.
               // Hover (desktop): cresce e brilha mais.
               Padding(
-                padding: const EdgeInsets.only(bottom: 18),
+                padding: const EdgeInsets.only(top: 14, bottom: 18),
                 child: MouseRegion(
                 cursor: SystemMouseCursors.click,
                 onEnter: (_) => setState(() => _missionHover = true),

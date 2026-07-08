@@ -1,3 +1,6 @@
+import 'word_cefr.dart';
+import 'word_examples.dart';
+
 /// Banco de palavras (~1000) em 23 tópicos.
 ///
 /// O jogo sorteia palavras ALEATORIAMENTE entre todos os tópicos; o nível
@@ -24,6 +27,31 @@ class WordCategory {
   const WordCategory(this.level, this.name, this.words);
 }
 
+// ---------------------------------------------------------------------------
+// DADOS EM TEMPO DE EXECUÇÃO: o WordRepository troca estes ponteiros pelos
+// dados sincronizados do Supabase (tabela words) — o conteúdo embutido no
+// app é a semente/fallback offline. Aumentar o vocabulário = INSERT no
+// banco, sem novo deploy.
+// ---------------------------------------------------------------------------
+
+/// Banco ativo (embutido até a primeira sincronização).
+List<WordCategory> runtimeBank = wordBank;
+
+/// Exemplos ativos: en → [(frase, tradução) ×3 tempos].
+Map<String, List<(String, String)>> runtimeExamples = wordExamples;
+
+/// Nível CEFR ativo por palavra: en → 'A1'..'C2'.
+Map<String, String> runtimeCefr = wordCefr;
+
+/// Ordem dos níveis CEFR (para o filtro acumulativo "até X").
+const List<String> cefrOrder = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+
+/// Posição do nível na escada; desconhecido conta como A1 (sempre entra).
+int cefrRank(String? cefr) {
+  final r = cefrOrder.indexOf(cefr ?? 'A1');
+  return r < 0 ? 0 : r;
+}
+
 /// Palavras candidatas ao sorteio para um [level] e um conjunto de tópicos
 /// escolhidos pelo jogador ([topics] vazio = todos os tópicos).
 ///
@@ -34,7 +62,7 @@ class WordCategory {
 /// deixar o jogo sem variedade, muito menos sem palavras.
 /// Nome do tópico em que a palavra aparece (primeira ocorrência).
 String? topicOfWord(String en) {
-  for (final category in wordBank) {
+  for (final category in runtimeBank) {
     for (final w in category.words) {
       if (w.en == en) return category.name;
     }
@@ -47,16 +75,21 @@ List<Word> candidateWords({
   Set<String> topics = const {},
   Set<String> excludeWords = const {},
   Set<String> excludeInitials = const {},
+  String? maxCefr,
 }) {
   final categories = topics.isEmpty
-      ? wordBank
-      : wordBank.where((c) => topics.contains(c.name)).toList();
+      ? runtimeBank
+      : runtimeBank.where((c) => topics.contains(c.name)).toList();
+  // Escada CEFR acumulativa: "até B1" = A1+A2+B1. Palavra sem etiqueta
+  // conta como A1 (nunca some do jogo por falta de classificação).
+  final maxRank = maxCefr == null ? cefrOrder.length - 1 : cefrRank(maxCefr);
 
   List<Word> collect({required bool applyDifficulty}) {
     final maxLen = 4 + level;
     final pool = <Word>[];
     for (final category in categories) {
       for (final w in category.words) {
+        if (cefrRank(runtimeCefr[w.en]) > maxRank) continue;
         if (applyDifficulty) {
           final isPhrase = w.en.contains(' ');
           if (isPhrase && level < 6) continue;

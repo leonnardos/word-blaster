@@ -36,6 +36,23 @@ void main() {
     expect(stat.spawnWeight, lessThan(base));
   });
 
+  test('candidateWords: escada CEFR acumulativa corta os níveis acima', () {
+    final original = runtimeCefr;
+    runtimeCefr = {'cat': 'A1', 'dog': 'B2'};
+    addTearDown(() => runtimeCefr = original);
+
+    final pool = candidateWords(level: 50, topics: {'Animais'}, maxCefr: 'A1');
+    expect(pool.any((w) => w.en == 'cat'), isTrue);
+    expect(pool.any((w) => w.en == 'dog'), isFalse,
+        reason: 'B2 não entra no "até A1"');
+    // Palavra sem etiqueta conta como A1: nunca some do jogo.
+    expect(pool.any((w) => w.en == 'bird'), isTrue);
+
+    // "Até B2" (acumulativo) já inclui o dog.
+    final b2 = candidateWords(level: 50, topics: {'Animais'}, maxCefr: 'B2');
+    expect(b2.any((w) => w.en == 'dog'), isTrue);
+  });
+
   test('peso de repetição é limitado: razão máxima 6× entre extremos', () {
     // Sem teto apertado, meia dúzia de palavras erradas monopolizava o
     // sorteio e as dominadas sumiam (razão antiga chegava a 40×).

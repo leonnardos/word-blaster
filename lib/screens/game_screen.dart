@@ -5,7 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../data/word_examples.dart';
+import '../data/word_bank.dart';
 import '../game/difficulty.dart';
 import '../services/ranking_service.dart';
 import '../game/screen_size.dart';
@@ -803,7 +803,7 @@ class _InspectOverlayState extends State<_InspectOverlay> {
     final enemy = widget.game.inspectedEnemy;
     if (enemy == null) return const SizedBox.shrink();
     final word = enemy.wordData;
-    final examples = wordExamples[word.en];
+    final examples = runtimeExamples[word.en];
 
     return Stack(
       children: [

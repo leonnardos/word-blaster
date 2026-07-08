@@ -67,6 +67,7 @@ class ProgressService {
   static const _kShowTranslation = 'show_translation';
   static const _kHiddenMode = 'hidden_mode';
   static const _kNickname = 'nickname';
+  static const _kMaxCefr = 'max_cefr';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -109,6 +110,10 @@ class ProgressService {
   /// Apelido do jogador no ranking arcade (pré-preenche o próximo envio).
   static String nickname = '';
 
+  /// Escada CEFR acumulativa: treinar palavras ATÉ este nível
+  /// ('A1'..'C2'; 'C2' = vocabulário inteiro, o padrão).
+  static String maxCefr = 'C2';
+
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -117,7 +122,7 @@ class ProgressService {
     difficultyName = _prefs.getString(_kDifficulty) ?? 'beginner';
     // Descarta nomes de tópicos que não existem mais (renomeados em alguma
     // atualização) — um nome fantasma deixaria o sorteio sem palavras.
-    final validTopics = wordBank.map((c) => c.name).toSet();
+    final validTopics = runtimeBank.map((c) => c.name).toSet();
     selectedTopics = (_prefs.getStringList(_kTopics) ?? const [])
         .where(validTopics.contains)
         .toSet();
@@ -130,6 +135,8 @@ class ProgressService {
     showTranslation = _prefs.getBool(_kShowTranslation) ?? true;
     hiddenMode = _prefs.getBool(_kHiddenMode) ?? false;
     nickname = _prefs.getString(_kNickname) ?? '';
+    final cefr = _prefs.getString(_kMaxCefr) ?? 'C2';
+    maxCefr = cefrOrder.contains(cefr) ? cefr : 'C2';
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -158,6 +165,11 @@ class ProgressService {
   static Future<void> saveNickname(String nick) async {
     nickname = nick;
     await _prefs.setString(_kNickname, nick);
+  }
+
+  static Future<void> saveMaxCefr(String cefr) async {
+    maxCefr = cefr;
+    await _prefs.setString(_kMaxCefr, cefr);
   }
 
   static Future<void> saveTopics(Set<String> topics) async {

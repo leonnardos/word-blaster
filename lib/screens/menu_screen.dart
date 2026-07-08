@@ -174,7 +174,7 @@ class _MenuScreenState extends State<MenuScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
-                children: [_topicsButton(), _top10Button()],
+                children: [_topicsButton(), _cefrButton(), _top10Button()],
               ),
               const SizedBox(height: 14),
               _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
@@ -272,6 +272,97 @@ class _MenuScreenState extends State<MenuScreen> {
       label: Text(label,
           style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
       onPressed: _openTopicsSheet,
+    );
+  }
+
+  /// Escada CEFR acumulativa: escolher B1 treina A1+A2+B1.
+  Widget _cefrButton() {
+    final max = ProgressService.maxCefr;
+    final label = max == 'C2' ? 'NÍVEL: TODOS' : 'NÍVEL: ATÉ $max';
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: const Color(0xE0141A2E),
+        foregroundColor: const Color(0xFFAAB4CE),
+        side: const BorderSide(color: Color(0xFF3A4568)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+      ),
+      icon: const Icon(Icons.school_outlined, size: 16),
+      label: Text(label,
+          style: const TextStyle(fontSize: 12, letterSpacing: 1.5)),
+      onPressed: _openCefrSheet,
+    );
+  }
+
+  Future<void> _openCefrSheet() async {
+    const descriptions = {
+      'A1': 'começando do zero',
+      'A2': 'básico do dia-a-dia',
+      'B1': 'intermediário',
+      'B2': 'intermediário-alto',
+      'C1': 'avançado',
+      'C2': 'vocabulário inteiro',
+    };
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF10162A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'TREINAR PALAVRAS ATÉ O NÍVEL',
+              style: TextStyle(
+                color: Color(0xFF9AA3BC),
+                fontSize: 12,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'os níveis acumulam: B1 inclui A1 e A2',
+              style: TextStyle(color: Color(0xFF5A6284), fontSize: 11),
+            ),
+            const SizedBox(height: 12),
+            for (final level in cefrOrder)
+              ListTile(
+                dense: true,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                tileColor: level == ProgressService.maxCefr
+                    ? const Color(0xFF0E2A33)
+                    : null,
+                leading: Text(
+                  level,
+                  style: TextStyle(
+                    color: level == ProgressService.maxCefr
+                        ? const Color(0xFF00E5FF)
+                        : const Color(0xFFAAB4CE),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                title: Text(
+                  descriptions[level]!,
+                  style: const TextStyle(
+                      color: Color(0xFF8A93B2), fontSize: 13),
+                ),
+                trailing: level == ProgressService.maxCefr
+                    ? const Icon(Icons.check, color: Color(0xFF00E5FF), size: 18)
+                    : null,
+                onTap: () async {
+                  await ProgressService.saveMaxCefr(level);
+                  if (context.mounted) Navigator.of(context).pop();
+                  setState(() {});
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -466,7 +557,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     child: Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: wordBank.map((category) {
+                      children: runtimeBank.map((category) {
                         final selected = selection.contains(category.name);
                         return FilterChip(
                           label: Text(

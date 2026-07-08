@@ -7,12 +7,16 @@ import 'services/ads_service.dart';
 import 'services/progress_service.dart';
 import 'services/sound_service.dart';
 import 'services/tts_service.dart';
+import 'services/word_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+  // Antes do ProgressService: ele valida os tópicos escolhidos contra o
+  // banco ativo (que o repositório pode ter atualizado do Supabase).
+  await WordRepository.init();
   await ProgressService.init();
   await TtsService.init();
   await SoundService.init();

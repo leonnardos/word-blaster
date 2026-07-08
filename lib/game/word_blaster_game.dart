@@ -455,6 +455,7 @@ class WordBlasterGame extends FlameGame {
       topics: ProgressService.selectedTopics,
       excludeWords: {...active, ..._recentWords},
       excludeInitials: activeInitials,
+      maxCefr: ProgressService.maxCefr,
     );
     if (candidates.isEmpty) {
       // Pool pequeno demais para o cooldown de repetição: solta o cooldown.
@@ -463,6 +464,7 @@ class WordBlasterGame extends FlameGame {
         topics: ProgressService.selectedTopics,
         excludeWords: active,
         excludeInitials: activeInitials,
+        maxCefr: ProgressService.maxCefr,
       );
     }
     if (candidates.isEmpty) return null;

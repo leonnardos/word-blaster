@@ -177,7 +177,14 @@ após a 1ª visita via service worker).
   mantido); tópicos viram "pacotes" escolhíveis — e no futuro, tópico
   personalizado gerado sob demanda por LLM.
 
-#### 4.z Escada CEFR — decisões do dono (2026-07-08, ainda NÃO construir)
+#### 4.z Escada CEFR — decisões do dono (2026-07-08)
+
+**✅ INFRAESTRUTURA PRONTA (v0.12.0)**: tabela `words` no Supabase (semeada
+com as 1.001 palavras + exemplos, RLS só-leitura), WordRepository com sync
+incremental + cache (offline-first preservado), 1.001 palavras classificadas
+A1-C2 (A1:475 A2:376 B1:127 B2:22 C1:1), seletor "NÍVEL: até X" no menu.
+**Falta**: o CONTEÚDO da expansão (completar A1+A2 até ~2.000 e além) — agora
+é só inserir na tabela, sem deploy.
 
 Referência de tamanhos citada pelo dono (não é contrato): A1 800 · A2 1.200 ·
 B1 1.500 · B2 2.000 · C1 2.500. Decisões já tomadas:

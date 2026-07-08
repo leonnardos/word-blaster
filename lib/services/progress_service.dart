@@ -68,7 +68,6 @@ class ProgressService {
   static const _kHiddenMode = 'hidden_mode';
   static const _kNickname = 'nickname';
   static const _kMaxCefr = 'max_cefr';
-  static const _kInstallCardHidden = 'install_card_hidden';
 
   static late SharedPreferences _prefs;
   static final Map<String, WordStat> _wordStats = {};
@@ -115,9 +114,6 @@ class ProgressService {
   /// ('A1'..'C2'; 'C2' = vocabulário inteiro, o padrão).
   static String maxCefr = 'C2';
 
-  /// O jogador dispensou o card "instale o app" do menu.
-  static bool installCardHidden = false;
-
   static Future<void> init() async {
     _prefs = await SharedPreferences.getInstance();
     bestScore = _prefs.getInt(_kBestScore) ?? 0;
@@ -141,7 +137,6 @@ class ProgressService {
     nickname = _prefs.getString(_kNickname) ?? '';
     final cefr = _prefs.getString(_kMaxCefr) ?? 'C2';
     maxCefr = cefrOrder.contains(cefr) ? cefr : 'C2';
-    installCardHidden = _prefs.getBool(_kInstallCardHidden) ?? false;
 
     // 'full' persistido de versões antigas cai no padrão (medium).
     final sizeName = _prefs.getString(_kScreenSize) ?? ScreenSize.medium.name;
@@ -175,11 +170,6 @@ class ProgressService {
   static Future<void> saveMaxCefr(String cefr) async {
     maxCefr = cefr;
     await _prefs.setString(_kMaxCefr, cefr);
-  }
-
-  static Future<void> hideInstallCard() async {
-    installCardHidden = true;
-    await _prefs.setBool(_kInstallCardHidden, true);
   }
 
   static Future<void> saveTopics(Set<String> topics) async {

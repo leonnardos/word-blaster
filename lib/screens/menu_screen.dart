@@ -167,7 +167,6 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
               const Spacer(),
-              _installCard(),
               const Text(
                 'ESCOLHA SEU NÍVEL',
                 style: TextStyle(
@@ -192,7 +191,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 spacing: 8,
                 runSpacing: 8,
                 alignment: WrapAlignment.center,
-                children: [_topicsButton(), _cefrButton(), _top10Button()],
+                children: [
+                  _topicsButton(),
+                  _cefrButton(),
+                  _top10Button(),
+                  ..._installButton(),
+                ],
               ),
               const SizedBox(height: 14),
               _volumeRow('MÚSICA', ProgressService.musicVolume, (v) async {
@@ -324,96 +328,120 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  /// Card "instale o app": só no navegador do CELULAR, só se ainda não
-  /// está instalado. Android mostra INSTALAR (prompt nativo via
-  /// beforeinstallprompt); iPhone não tem prompt — vira instrução de
-  /// "Adicionar à Tela de Início". Dispensável (persistido).
-  Widget _installCard() {
-    if (ProgressService.installCardHidden ||
-        !InstallService.supported ||
-        InstallService.isStandalone) {
-      return const SizedBox.shrink();
+  /// Botão FIXO "baixar": faz parte do menu (sem popup, sem "agora não")
+  /// e só existe no navegador do celular enquanto o app NÃO está
+  /// instalado — instalou, some sozinho (pedido do usuário: quem quiser
+  /// baixar sempre sabe onde achar, e ninguém é incomodado).
+  /// Lista vazia = sem botão (o Wrap nem reserva espaço).
+  List<Widget> _installButton() {
+    if (!InstallService.supported || InstallService.isStandalone) {
+      return const [];
     }
     final isIos = defaultTargetPlatform == TargetPlatform.iOS;
     final isAndroid = defaultTargetPlatform == TargetPlatform.android;
-    if (!isIos && !isAndroid) return const SizedBox.shrink();
-    if (isAndroid && !InstallService.hasPrompt) {
-      // Chrome não ofereceu instalação: ou já está instalado, ou ainda
-      // não liberou — sem sinal confiável, melhor não mostrar nada.
-      return const SizedBox.shrink();
-    }
+    if (!isIos && !isAndroid) return const [];
+    // Android sem beforeinstallprompt = já instalado (ou o Chrome ainda
+    // não liberou): sem sinal confiável, o botão não aparece — os
+    // rechecks de 3s/8s do initState pegam o prompt que chega depois.
+    if (isAndroid && !InstallService.hasPrompt) return const [];
 
-    Future<void> dismiss() async {
-      await ProgressService.hideInstallCard();
-      if (mounted) setState(() {});
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-      decoration: BoxDecoration(
-        color: const Color(0xE0141A2E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF00E5FF), width: 1),
+    return [
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
+          backgroundColor: const Color(0xE0141A2E),
+          foregroundColor: const Color(0xFF00E5FF),
+          side: const BorderSide(color: Color(0xFF14505C)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        ),
+        icon: const Icon(Icons.download_rounded, size: 16),
+        label: const Text('BAIXAR',
+            style: TextStyle(fontSize: 12, letterSpacing: 1.5)),
+        onPressed: () {
+          if (isIos) {
+            _openIosInstallSheet();
+          } else {
+            InstallService.promptInstall();
+            // O prompt nativo consumiu o evento: reavalia o botão (se o
+            // jogador instalar, o modo standalone o esconde nas próximas).
+            setState(() {});
+          }
+        },
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.install_mobile,
-                  color: Color(0xFF00E5FF), size: 20),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  isIos
-                      ? 'Instale no iPhone: toque em Compartilhar '
-                          'e depois em "Adicionar à Tela de Início".'
-                      : 'Instale o Word Blaster: tela cheia, offline '
-                          'e ícone na tela inicial.',
-                  style: const TextStyle(
-                      color: Color(0xFFD9DEE8), fontSize: 11.5),
+    ];
+  }
+
+  /// iPhone não tem prompt de instalação (WebKit): o botão abre o passo
+  /// a passo de "Adicionar à Tela de Início".
+  Future<void> _openIosInstallSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF10162A),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 22, 24, 30),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Center(
+              child: Text(
+                '📲 INSTALAR NO IPHONE',
+                style: TextStyle(
+                  color: Color(0xFF00E5FF),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            for (final (i, step) in const [
+              'Toque no botão Compartilhar do navegador (quadrado com seta para cima).',
+              'Role a lista e toque em "Adicionar à Tela de Início".',
+              'Confirme — o ícone do jogo aparece na tela inicial e abre em tela cheia, funcionando até offline.',
+            ].indexed) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${i + 1}.',
+                      style: const TextStyle(
+                        color: Color(0xFF00E5FF),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        step,
+                        style: const TextStyle(
+                            color: Color(0xFFC9D2E0), fontSize: 13),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              TextButton(
-                onPressed: dismiss,
+            const SizedBox(height: 6),
+            Center(
+              child: TextButton(
+                onPressed: () => Navigator.of(context).pop(),
                 child: const Text(
-                  'AGORA NÃO',
-                  style: TextStyle(
-                      color: Color(0xFF5A6284),
-                      fontSize: 11,
-                      letterSpacing: 1),
+                  'FECHAR',
+                  style:
+                      TextStyle(color: Color(0xFF8A93B2), letterSpacing: 2),
                 ),
               ),
-              const SizedBox(width: 4),
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF00E5FF),
-                  foregroundColor: const Color(0xFF070B14),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
-                  minimumSize: Size.zero,
-                ),
-                onPressed: () {
-                  if (!isIos) InstallService.promptInstall();
-                  dismiss();
-                },
-                child: Text(
-                  isIos ? 'ENTENDI' : 'INSTALAR',
-                  style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
